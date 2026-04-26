@@ -1,0 +1,23 @@
+{
+  "name": "TwoGether",
+  "short_name": "TwoGether",
+  "description": "Không gian riêng của hai người yêu",
+  "start_url": "/home",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#E8A0B0",
+  "background_color": "#FDF8F5",
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
