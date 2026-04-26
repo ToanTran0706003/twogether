@@ -34,7 +34,8 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const isAppRoute = request.nextUrl.pathname.startsWith("/(app)/")
+  const PROTECTED_PATHS = ["/home", "/locket", "/quest", "/mood", "/dear", "/jar", "/spinner"]
+  const isAppRoute = PROTECTED_PATHS.some((p) => request.nextUrl.pathname.startsWith(p))
   const isLoginPage = request.nextUrl.pathname.startsWith("/login")
 
   if (isAppRoute && !user) {

@@ -1,4 +1,5 @@
 import { getCoupleDays, formatDate } from "@/lib/utils"
+import AnniversaryPicker from "./AnniversaryPicker"
 
 interface HeroCardProps {
   anniversary: string | null
@@ -46,19 +47,11 @@ export default async function HeroCard({ anniversary, coupleId }: HeroCardProps)
           <span>{next.daysLeft === 0 ? next.label : `Còn ${next.daysLeft} ngày nữa — ${next.label}`}</span>
         </div>
       ) : (
-        <div className="border-t pt-4 mt-2">
-          <p className="text-sm mb-2" style={{ color: "#C0909C" }}>
+        <div className="border-t pt-4 mt-2" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
+          <p className="text-sm mb-3" style={{ color: "#C0909C" }}>
             Thêm ngày kỷ niệm để theo dõi
           </p>
-          <form action={`/api/couple/${coupleId}/anniversary`} method="POST">
-            <button
-              type="submit"
-              className="px-4 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-80"
-              style={{ backgroundColor: "#E8A0B0", color: "#3A2832" }}
-            >
-              Chọn ngày kỷ niệm
-            </button>
-          </form>
+          <AnniversaryPicker coupleId={coupleId} />
         </div>
       )}
     </div>

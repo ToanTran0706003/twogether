@@ -35,10 +35,10 @@ export default async function TopNav() {
       </Link>
 
       <div className="flex -space-x-2">
-        {myProfile.data && (
+        {myProfile.data?.avatar_url && (
           <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden relative flex-shrink-0">
             <Image
-              src={myProfile.data.avatar_url ?? ""}
+              src={myProfile.data.avatar_url}
               alt="Me"
               fill
               className="object-cover"
@@ -46,10 +46,10 @@ export default async function TopNav() {
             />
           </div>
         )}
-        {partnerProfile.data && (
+        {partnerProfile.data?.avatar_url && (
           <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden relative flex-shrink-0">
             <Image
-              src={partnerProfile.data.avatar_url ?? ""}
+              src={partnerProfile.data.avatar_url}
               alt="Partner"
               fill
               className="object-cover"

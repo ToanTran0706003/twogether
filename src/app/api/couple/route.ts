@@ -19,6 +19,27 @@ const PRESET_QUESTS = [
   { title: "Đọc cùng một cuốn sách", category: "home" },
 ]
 
+export async function GET() {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const { data, error } = await supabase
+    .from("couples")
+    .select("*")
+    .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
+    .maybeSingle()
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json(data)
+}
+
 export async function POST() {
   const supabase = await createClient()
 

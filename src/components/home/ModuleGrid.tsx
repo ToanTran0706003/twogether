@@ -44,14 +44,14 @@ const MODULES: Module[] = [
     emoji: "💌",
     label: "Dear you",
     stat: "",
-    href: "/letters",
+    href: "/dear",
     description: "Thư tình",
   },
   {
     emoji: "🫙",
     label: "Memory jar",
     stat: "",
-    href: "/memories",
+    href: "/jar",
     description: "Lọ kỷ niệm",
   },
   {
