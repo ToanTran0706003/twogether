@@ -23,90 +23,95 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 interface QuestCardProps {
   quest: QuestItem
+  onUpdated: (quest: QuestItem) => void
 }
 
-export default function QuestCard({ quest }: QuestCardProps) {
+export default function QuestCard({ quest, onUpdated }: QuestCardProps) {
   const [showComplete, setShowComplete] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
 
-  async function handleToggle() {
-    if (quest.completed) return
-    setShowComplete(true)
-  }
-
   async function confirmComplete(photoUrl?: string) {
     setIsCompleting(true)
-    await fetch("/api/quest", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        quest_id: quest.id,
-        completed: true,
-        photo_url: photoUrl ?? null,
-      }),
-    })
+    // Optimistic update
+    const optimistic: QuestItem = {
+      ...quest,
+      completed: true,
+      completed_at: new Date().toISOString(),
+      photo_url: photoUrl ?? quest.photo_url,
+    }
+    onUpdated(optimistic)
     setShowComplete(false)
-    setIsCompleting(false)
+
+    try {
+      const res = await fetch("/api/quest", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quest_id: quest.id, completed: true, photo_url: photoUrl ?? null }),
+      })
+      if (res.ok) {
+        const saved: QuestItem = await res.json()
+        onUpdated(saved)
+      }
+    } finally {
+      setIsCompleting(false)
+    }
   }
 
   return (
     <>
       <div
-        className="flex items-start gap-3 p-4 rounded-2xl border transition-all"
         style={{
+          display: "flex", alignItems: "flex-start", gap: 12, padding: 16,
+          borderRadius: 18, border: "1.5px solid",
           backgroundColor: quest.completed ? "#F5F9F5" : "#FFFFFF",
-          borderColor: quest.completed ? "#D4EDDA" : "#F0E4DF",
-          opacity: quest.completed ? 0.8 : 1,
+          borderColor: quest.completed ? "#C8E6C9" : "#F0E4DF",
+          opacity: quest.completed ? 0.85 : 1,
+          transition: "all 0.2s",
         }}
       >
         <button
-          onClick={handleToggle}
-          disabled={quest.completed}
-          className="mt-0.5 w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all hover:scale-110 disabled:cursor-default"
+          onClick={() => !quest.completed && setShowComplete(true)}
+          disabled={quest.completed || isCompleting}
           style={{
-            borderColor: quest.completed ? "#7AC47A" : "#E8A0B0",
-            backgroundColor: quest.completed ? "#7AC47A" : "transparent",
+            marginTop: 1, width: 24, height: 24, borderRadius: "50%", border: "2px solid",
+            flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: quest.completed ? "default" : "pointer",
+            borderColor: quest.completed ? "#66BB6A" : "#E8A0B0",
+            backgroundColor: quest.completed ? "#66BB6A" : "transparent",
+            transition: "all 0.2s",
           }}
         >
-          {quest.completed && <span className="text-white text-xs">✓</span>}
+          {quest.completed && <span style={{ color: "white", fontSize: 11, fontWeight: 700 }}>✓</span>}
         </button>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <p
-              className="text-sm font-medium"
-              style={{
-                color: "#3A2832",
-                textDecoration: quest.completed ? "line-through" : "none",
-              }}
-            >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+            <p style={{
+              fontSize: 14, fontWeight: 600, color: "#3A2832", margin: 0,
+              textDecoration: quest.completed ? "line-through" : "none",
+            }}>
               {quest.title}
             </p>
             {quest.category && (
-              <span
-                className="text-xs px-2 py-0.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: CATEGORY_COLORS[quest.category] + "99", color: "#3A2832" }}
-              >
+              <span style={{
+                fontSize: 11, padding: "2px 8px", borderRadius: 100, flexShrink: 0,
+                backgroundColor: (CATEGORY_COLORS[quest.category] ?? "#F0E4DF") + "BB",
+                color: "#5A3A42",
+              }}>
                 {CATEGORY_LABELS[quest.category] ?? quest.category}
               </span>
             )}
           </div>
 
           {quest.completed && quest.completed_at && (
-            <p className="text-xs mt-1" style={{ color: "#8A6A72" }}>
+            <p style={{ fontSize: 11, color: "#8A9A8A", marginTop: 3 }}>
               Hoàn thành {new Date(quest.completed_at).toLocaleDateString("vi-VN")}
             </p>
           )}
 
           {quest.photo_url && (
-            <div className="relative mt-2 w-20 h-20 rounded-xl overflow-hidden">
-              <Image
-                src={quest.photo_url}
-                alt="Quest photo"
-                fill
-                className="object-cover"
-                unoptimized
-              />
+            <div style={{ position: "relative", marginTop: 8, width: 80, height: 80, borderRadius: 10, overflow: "hidden" }}>
+              <Image src={quest.photo_url} alt="Quest photo" fill style={{ objectFit: "cover" }} unoptimized />
             </div>
           )}
         </div>

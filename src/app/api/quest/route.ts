@@ -16,12 +16,7 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await supabase
     .from("quest_items")
-    .insert({
-      couple_id,
-      created_by: user.id,
-      title,
-      category: category ?? null,
-    })
+    .insert({ couple_id, created_by: user.id, title, category: category ?? null })
     .select()
     .single()
 
@@ -57,6 +52,21 @@ export async function PATCH(request: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Auto-insert into memories when quest is completed
+  if (completed && data) {
+    await supabase.from("memories").insert({
+      couple_id: data.couple_id,
+      user_id: user.id,
+      type: "quest",
+      title: data.title,
+      content: null,
+      media_url: photo_url ?? null,
+      memory_date: new Date().toISOString().split("T")[0],
+      source: "quest",
+      source_id: quest_id,
+    })
+  }
 
   return NextResponse.json(data)
 }

@@ -76,5 +76,6 @@ export interface Memory {
   media_url: string | null
   memory_date: string
   source: string | null
+  source_id: string | null
   created_at: string
 }
