@@ -24,6 +24,7 @@ async function HomeContent() {
   if (!couple) redirect("/invite")
 
   const partnerId = couple.user_a_id === user.id ? couple.user_b_id : couple.user_a_id
+  const hasPartner = couple.user_b_id !== null
 
   const today = new Date().toISOString().split("T")[0]
 
@@ -64,6 +65,16 @@ async function HomeContent() {
       <TopNav />
 
       <div className="flex-1 space-y-1">
+        {!hasPartner && (
+          <div style={{ margin: "12px 16px 0", padding: "12px 16px", borderRadius: 16, backgroundColor: "#FFF0C0", border: "1px solid #F2DDC2", display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 20 }}>⏳</span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#3A2832" }}>Chờ người yêu kết nối...</div>
+              <div style={{ fontSize: 11.5, color: "#7A5A65", marginTop: 1 }}>Chia sẻ mã mời để họ tham gia</div>
+            </div>
+          </div>
+        )}
+
         <div className="pt-4 pb-2">
           <HeroCard anniversary={couple.anniversary} coupleId={couple.id} />
         </div>

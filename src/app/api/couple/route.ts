@@ -91,13 +91,14 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  // Only block if user is already in a FULLY connected couple (both users present)
   const { data: existing } = await supabase
     .from("couples")
-    .select("id")
+    .select("id, user_b_id")
     .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
     .maybeSingle()
 
-  if (existing) {
+  if (existing && existing.user_b_id !== null) {
     return NextResponse.json({ error: "Already in a couple" }, { status: 400 })
   }
 
@@ -116,17 +117,24 @@ export async function PATCH(request: NextRequest) {
     .single()
 
   if (error || !couple) {
-    return NextResponse.json({ error: "Invalid or expired invite code" }, { status: 404 })
+    return NextResponse.json({ error: "Mã không hợp lệ hoặc đã được sử dụng" }, { status: 404 })
   }
 
-  const { error: updateError } = await supabase
+  // Prevent user from joining their own couple
+  if (couple.user_a_id === user.id) {
+    return NextResponse.json({ error: "Không thể dùng mã của chính mình" }, { status: 400 })
+  }
+
+  const { data: updated, error: updateError } = await supabase
     .from("couples")
     .update({ user_b_id: user.id })
     .eq("id", couple.id)
+    .select()
+    .single()
 
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true }, { status: 200 })
+  return NextResponse.json(updated, { status: 200 })
 }

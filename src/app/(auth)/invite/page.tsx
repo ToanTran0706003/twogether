@@ -9,6 +9,7 @@ export default function InvitePage() {
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
 
   async function handleCreateCouple() {
     setIsLoading(true)
@@ -37,7 +38,8 @@ export default function InvitePage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      window.location.href = "/home"
+      setSuccess(true)
+      setTimeout(() => { window.location.href = "/home" }, 1500)
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -130,6 +132,29 @@ export default function InvitePage() {
           <p style={{ fontSize: 13, textAlign: "center", color: "#ef4444", marginTop: 12 }}>{error}</p>
         )}
       </div>
+
+      {success && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 50,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          backgroundColor: "rgba(58,40,50,0.4)", backdropFilter: "blur(4px)",
+        }}>
+          <div style={{
+            background: "white", borderRadius: 24, padding: "32px 40px",
+            textAlign: "center", boxShadow: "0 8px 28px rgba(192,96,122,0.2)",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
+          }}>
+            <div style={{ fontSize: 48 }}>💑</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "#C0607A", fontFamily: "var(--font-heading), serif" }}>
+              Đã kết nối!
+            </div>
+            <div style={{ fontSize: 14, color: "#7A5A65" }}>
+              Đã kết nối với người yêu ♡
+            </div>
+            <div style={{ fontSize: 12, color: "#B89BA3" }}>Đang chuyển trang...</div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

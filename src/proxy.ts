@@ -76,15 +76,15 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // 4. Already has couple but visiting /invite → redirect to /home
+  // 4. Visiting /invite while logged in → only redirect /home if couple is fully connected (both users present)
   if (isInvitePage && user) {
     const { data: couple } = await supabase
       .from("couples")
-      .select("id")
+      .select("id, user_b_id")
       .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
       .maybeSingle()
 
-    if (couple) {
+    if (couple && couple.user_b_id !== null) {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = "/home"
       return NextResponse.redirect(redirectUrl)
