@@ -48,6 +48,13 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  await supabase.from("users").upsert({
+    id: user.id,
+    email: user.email,
+    name: user.user_metadata?.full_name ?? user.email,
+    avatar_url: user.user_metadata?.avatar_url ?? null,
+  }, { onConflict: "id" })
+
   // If user already has a couple, return it instead of erroring
   const { data: existing } = await supabase
     .from("couples")
@@ -130,6 +137,13 @@ export async function PATCH(request: NextRequest) {
   if (!couple) {
     return NextResponse.json({ error: "Mã không hợp lệ hoặc đã được sử dụng" }, { status: 400 })
   }
+
+  await supabase.from("users").upsert({
+    id: user.id,
+    email: user.email,
+    name: user.user_metadata?.full_name ?? user.email,
+    avatar_url: user.user_metadata?.avatar_url ?? null,
+  }, { onConflict: "id" })
 
   const { data: updated, error: updateError } = await supabase
     .from("couples")
