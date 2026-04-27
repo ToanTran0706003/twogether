@@ -9,8 +9,6 @@ import StreakBar from "@/components/home/StreakBar"
 import HomeSkeleton from "@/components/home/HomeSkeleton"
 import { ConnectBanner } from "@/components/home/ConnectBanner"
 import { Suspense } from "react"
-import type { MoodEntry } from "@/types"
-
 async function HomeContent() {
   const supabase = await createClient()
 
@@ -23,21 +21,16 @@ async function HomeContent() {
     .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
     .maybeSingle()
 
-  const partnerId = couple
-    ? (couple.user_a_id === user.id ? couple.user_b_id : couple.user_a_id)
-    : null
-
   const today = new Date().toISOString().split("T")[0]
 
-  const [initialMoods, questData, letterData, memoryData, todayPhotoData] = couple
+  const [questData, letterData, memoryData, todayPhotoData] = couple
     ? await Promise.all([
-        supabase.from("mood_entries").select("*").eq("couple_id", couple.id).eq("entry_date", today),
         supabase.from("quest_items").select("completed").eq("couple_id", couple.id),
         supabase.from("letters").select("id", { count: "exact" }).eq("couple_id", couple.id).eq("delivered", false),
         supabase.from("memories").select("id", { count: "exact" }).eq("couple_id", couple.id),
         supabase.from("locket_photos").select("id", { count: "exact" }).eq("couple_id", couple.id).gte("taken_at", `${today}T00:00:00`),
       ])
-    : [{ data: [] }, { data: [] }, { count: 0 }, { count: 0 }, { count: 0 }]
+    : [{ data: [] }, { count: 0 }, { count: 0 }, { count: 0 }]
 
   const completedQuests = (questData as { data?: { completed: boolean }[] }).data?.filter((q) => q.completed).length ?? 0
   const totalQuests = (questData as { data?: unknown[] }).data?.length ?? 0
@@ -62,8 +55,6 @@ async function HomeContent() {
             <MoodSync
               coupleId={couple.id}
               userId={user.id}
-              partnerId={partnerId}
-              initialMoods={(initialMoods as { data?: MoodEntry[] }).data ?? []}
             />
 
             <div className="border-t border-b py-1" style={{ borderColor: "#F0E4DF" }}>

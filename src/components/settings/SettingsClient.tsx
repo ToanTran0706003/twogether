@@ -154,6 +154,7 @@ export default function SettingsClient({
 
   // Notification state
   const [notifOn, setNotifOn] = useState(false)
+  const [notifSupported, setNotifSupported] = useState(true)
 
   // Danger zone state
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
@@ -168,6 +169,9 @@ export default function SettingsClient({
   }, [activeCoupleId])
 
   useEffect(() => {
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+      setNotifSupported(false)
+    }
     try {
       const raw = localStorage.getItem(`twogether_notif_${userId}`)
       if (raw !== null) setNotifOn(raw === "true")
@@ -551,12 +555,61 @@ export default function SettingsClient({
       <div style={{ marginBottom: 20 }}>
         <div style={sectionLabelStyle}>Thông báo</div>
         <div style={cardStyle}>
+          {/* Push notification toggle */}
           <div style={rowStyle}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 500, color: COLORS.text }}>Thông báo đẩy</div>
+              <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>
+                {!notifSupported
+                  ? "Trình duyệt không hỗ trợ"
+                  : notifOn
+                  ? "Đang bật — nhận thông báo từ người yêu"
+                  : "Tắt — bật để không bỏ lỡ gì ♡"}
+              </div>
             </div>
-            <button onClick={handleNotifToggle} aria-label="Toggle thông báo đẩy" style={{ width: 44, height: 26, borderRadius: 100, background: notifOn ? COLORS.primary : "#E5DCD5", border: "none", position: "relative", cursor: "pointer", transition: "background 0.2s", flexShrink: 0, padding: 0 }}>
-              <div style={{ position: "absolute", top: 2, left: notifOn ? 20 : 2, width: 22, height: 22, borderRadius: "50%", background: "white", boxShadow: "0 1px 3px rgba(0,0,0,0.15)", transition: "left 0.2s" }} />
+            <button
+              onClick={notifSupported ? handleNotifToggle : undefined}
+              aria-label="Toggle thông báo đẩy"
+              style={{
+                width: 48, height: 28, borderRadius: 100,
+                background: notifOn ? COLORS.primary : "#E5DCD5",
+                border: "none", position: "relative",
+                cursor: notifSupported ? "pointer" : "not-allowed",
+                transition: "background 0.25s", flexShrink: 0, padding: 0,
+                opacity: notifSupported ? 1 : 0.5,
+              }}
+            >
+              <div style={{
+                position: "absolute", top: 3,
+                left: notifOn ? 23 : 3,
+                width: 22, height: 22, borderRadius: "50%",
+                background: "white", boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
+                transition: "left 0.25s",
+              }} />
+            </button>
+          </div>
+          {/* Mood reminder toggle */}
+          <div style={{ ...rowStyle, borderTop: "0.5px solid #F7D6DF" }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 500, color: COLORS.text }}>Nhắc check-in mood</div>
+              <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>Nhắc lúc 21:00 nếu chưa cập nhật</div>
+            </div>
+            <button
+              aria-label="Toggle nhắc mood"
+              style={{
+                width: 48, height: 28, borderRadius: 100,
+                background: "#E5DCD5",
+                border: "none", position: "relative",
+                cursor: "not-allowed",
+                transition: "background 0.25s", flexShrink: 0, padding: 0,
+                opacity: 0.4,
+              }}
+            >
+              <div style={{
+                position: "absolute", top: 3, left: 3,
+                width: 22, height: 22, borderRadius: "50%",
+                background: "white", boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
+              }} />
             </button>
           </div>
         </div>
