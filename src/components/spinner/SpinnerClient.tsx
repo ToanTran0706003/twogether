@@ -3,13 +3,12 @@
 import { useState, useCallback, useMemo, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from '@/components/shared/Toast'
-import SpinWheel from "@/components/spinner/SpinWheel"
+import { SpinWheel } from "@/components/spinner/SpinWheel"
 import FilterBar from "@/components/spinner/FilterBar"
 import ResultCard from "@/components/spinner/ResultCard"
 import {
   DATE_IDEAS,
   filterIdeas,
-  pickRandomIdea,
   type CostType,
   type LocationType,
   type DateIdea,
@@ -52,25 +51,11 @@ export default function SpinnerClient() {
     [costFilter, locationFilter, durationFilter]
   )
 
-  const handleSpin = useCallback(() => {
-    if (isSpinning) return
-    if (filteredIdeas.length === 0) {
-      showToast("Thử bộ lọc khác nhé!")
-      return
-    }
-    setIsSpinning(true)
-    setResult(null)
-
-    setTimeout(() => {
-      const picked = pickRandomIdea(filteredIdeas)
-      if (picked) {
-        setResult(picked)
-        saveHistory(picked)
-        setHistory(loadHistory())
-      }
-      setIsSpinning(false)
-    }, 1300)
-  }, [isSpinning, filteredIdeas])
+  const handleSpinEnd = useCallback((picked: DateIdea) => {
+    setResult(picked)
+    saveHistory(picked)
+    setHistory(loadHistory())
+  }, [])
 
   async function handleSaveMemory(idea: DateIdea) {
     const supabase = createClient()
@@ -121,9 +106,10 @@ export default function SpinnerClient() {
   return (
     <div className="px-4 space-y-6">
       <SpinWheel
+        ideas={filteredIdeas}
         isSpinning={isSpinning}
-        segments={filteredIdeas.length > 0 ? filteredIdeas.length : 6}
-        onSpin={handleSpin}
+        setIsSpinning={setIsSpinning}
+        onSpinEnd={handleSpinEnd}
       />
 
       {filteredIdeas.length === 0 && (
@@ -146,7 +132,7 @@ export default function SpinnerClient() {
       {result && !isSpinning && (
         <ResultCard
           idea={result}
-          onSpinAgain={() => { setResult(null); handleSpin() }}
+          onSpinAgain={() => { setResult(null) }}
           onSaveMemory={() => handleSaveMemory(result)}
           onSaveQuest={() => handleSaveQuest(result)}
         />
