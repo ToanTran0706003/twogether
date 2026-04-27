@@ -70,7 +70,7 @@ async function HomeContent() {
             <span style={{ fontSize: 20 }}>⏳</span>
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: "#3A2832" }}>Chờ người yêu kết nối...</div>
-              <div style={{ fontSize: 11.5, color: "#7A5A65", marginTop: 1 }}>Chia sẻ mã mời để họ tham gia</div>
+              <div style={{ fontSize: 11.5, color: "#7A5A65", marginTop: 1 }}>Mã mời: <span style={{ fontWeight: 700, letterSpacing: 2, fontFamily: "monospace" }}>{couple.invite_code}</span></div>
             </div>
           </div>
         )}
