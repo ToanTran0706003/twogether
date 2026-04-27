@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { LoadingSpinner, LoadingButton } from '@/components/shared/LoadingSpinner'
+import { useToast } from '@/components/shared/Toast'
 
 interface CoupleRow {
   id: string
@@ -15,6 +16,7 @@ interface CoupleRow {
 export function ConnectBanner({ userId }: { userId: string }) {
   const [couple, setCouple] = useState<CoupleRow | null>(null)
   const [loading, setLoading] = useState(true)
+  const { showToast } = useToast()
   const [showSheet, setShowSheet] = useState(false)
   const [tab, setTab] = useState<"create" | "join">("create")
   const [myCode, setMyCode] = useState("")
@@ -141,6 +143,7 @@ export function ConnectBanner({ userId }: { userId: string }) {
 
   const copyCode = async () => {
     await navigator.clipboard.writeText(myCode)
+    showToast('Đã copy mã mời ✓')
   }
 
   if (loading) return null

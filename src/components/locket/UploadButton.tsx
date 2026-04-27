@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react"
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { resizeImage } from '@/lib/image-utils'
+import { useToast } from '@/components/shared/Toast'
 
 interface UploadButtonProps {
   coupleId: string
@@ -10,6 +12,7 @@ interface UploadButtonProps {
 export default function UploadButton({ coupleId }: UploadButtonProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const { showToast } = useToast()
   const [showCaption, setShowCaption] = useState(false)
   const [pendingBlob, setPendingBlob] = useState<Blob | null>(null)
   const [caption, setCaption] = useState("")
@@ -53,7 +56,7 @@ export default function UploadButton({ coupleId }: UploadButtonProps) {
       // Realtime subscription in LocketFeed handles adding the photo
     } catch (err) {
       console.error("Upload failed:", err)
-      alert("Tải ảnh thất bại. Vui lòng thử lại.")
+      showToast("Tải ảnh thất bại. Vui lòng thử lại.", "error")
     } finally {
       setIsUploading(false)
       setPendingBlob(null)
@@ -139,33 +142,4 @@ export default function UploadButton({ coupleId }: UploadButtonProps) {
       )}
     </>
   )
-}
-
-function resizeImage(file: File, maxSize: number): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const img = new window.Image()
-    img.onload = () => {
-      let { width, height } = img
-      if (width > maxSize || height > maxSize) {
-        if (width > height) {
-          height = Math.round((height * maxSize) / width)
-          width = maxSize
-        } else {
-          width = Math.round((width * maxSize) / height)
-          height = maxSize
-        }
-      }
-      const canvas = document.createElement("canvas")
-      canvas.width = width
-      canvas.height = height
-      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height)
-      canvas.toBlob(
-        (blob) => (blob ? resolve(blob) : reject(new Error("toBlob failed"))),
-        "image/webp",
-        0.85
-      )
-    }
-    img.onerror = () => reject(new Error("Image load failed"))
-    img.src = URL.createObjectURL(file)
-  })
 }

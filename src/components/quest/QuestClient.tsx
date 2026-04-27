@@ -125,7 +125,7 @@ export default function QuestClient({ initialQuests, coupleId }: QuestClientProp
         onOpenChange={setShowAdd}
         coupleId={coupleId}
         onAdded={(quest) => {
-          setQuests((prev) => [quest as QuestItem, ...prev])
+          setQuests((prev) => [quest, ...prev])
         }}
       />
     </div>

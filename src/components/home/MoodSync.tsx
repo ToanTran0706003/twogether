@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { MoodEntry } from "@/types"
+import { MOOD_OPTIONS } from "@/lib/mood-config"
 
 interface MoodSyncProps {
   coupleId: string
@@ -10,15 +11,6 @@ interface MoodSyncProps {
   partnerId: string | null
   initialMoods?: MoodEntry[]
 }
-
-const MOOD_OPTIONS = [
-  { emoji: "😊", label: "Vui", color: "#FFE066" },
-  { emoji: "🥰", label: "Yêu", color: "#FFB3C6" },
-  { emoji: "😌", label: "Bình yên", color: "#B5EAD7" },
-  { emoji: "😴", label: "Mệt", color: "#C7CEEA" },
-  { emoji: "🌧", label: "Buồn", color: "#A8D8EA" },
-  { emoji: "😤", label: "Giận", color: "#FFAAA5" },
-]
 
 export default function MoodSync({ coupleId, userId, partnerId, initialMoods = [] }: MoodSyncProps) {
   const [myMood, setMyMood] = useState<MoodEntry | null>(
@@ -70,7 +62,23 @@ export default function MoodSync({ coupleId, userId, partnerId, initialMoods = [
       .select()
       .single()
 
-    if (!error && data) setMyMood(data)
+    if (!error && data) {
+      setMyMood(data)
+      // notify partner
+      const moodLabel = MOOD_OPTIONS.find(m => m.emoji === emoji)?.label ?? emoji
+      void fetch('/api/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          couple_id: coupleId,
+          sender_id: userId,
+          type: 'mood_update',
+          title: 'Người yêu vừa cập nhật tâm trạng',
+          body: `${emoji} ${moodLabel}`,
+          url: '/mood',
+        }),
+      })
+    }
     setShowPicker(false)
     setIsLoading(false)
   }

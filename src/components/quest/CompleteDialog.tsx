@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react"
 import Image from "next/image"
+import { resizeImage } from '@/lib/image-utils'
 
 interface CompleteDialogProps {
   open: boolean
@@ -161,23 +162,4 @@ export default function CompleteDialog({
       </div>
     </div>
   )
-}
-
-function resizeImage(file: File, maxSize: number): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const img = new window.Image()
-    img.onload = () => {
-      let { width, height } = img
-      if (width > maxSize || height > maxSize) {
-        if (width > height) { height = Math.round((height * maxSize) / width); width = maxSize }
-        else { width = Math.round((width * maxSize) / height); height = maxSize }
-      }
-      const canvas = document.createElement("canvas")
-      canvas.width = width; canvas.height = height
-      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height)
-      canvas.toBlob((b) => b ? resolve(b) : reject(new Error("toBlob failed")), "image/webp", 0.85)
-    }
-    img.onerror = () => reject(new Error("load failed"))
-    img.src = URL.createObjectURL(file)
-  })
 }

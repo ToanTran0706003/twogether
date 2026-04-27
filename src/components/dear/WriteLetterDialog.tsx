@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -76,6 +76,30 @@ export default function WriteLetterDialog({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
+  // Auto-save draft
+  useEffect(() => {
+    if (!open) return
+    if (!content && !title) return
+    const draft = { title, content, savedAt: Date.now() }
+    localStorage.setItem('letter_draft', JSON.stringify(draft))
+  }, [title, content, open])
+
+  // Load draft on open
+  useEffect(() => {
+    if (!open) return
+    const saved = localStorage.getItem('letter_draft')
+    if (!saved) return
+    try {
+      const draft = JSON.parse(saved) as { title: string; content: string; savedAt: number }
+      if (Date.now() - draft.savedAt < 86_400_000) {
+        if (draft.title) setTitle(draft.title)
+        if (draft.content) setContent(draft.content)
+      }
+    } catch {
+      // ignore corrupt draft
+    }
+  }, [open])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!content.trim()) {
@@ -109,6 +133,7 @@ export default function WriteLetterDialog({
       }
 
       onSent(data)
+      localStorage.removeItem('letter_draft')
       setTitle("")
       setContent("")
       onOpenChange(false)

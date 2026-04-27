@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { MoodEntry } from "@/types"
+import { MOOD_OPTIONS } from "@/lib/mood-config"
 import MoodPicker from "./MoodPicker"
 import WeeklyGrid from "./WeeklyGrid"
 
@@ -17,17 +18,6 @@ interface MoodClientProps {
   myAvatar?: string | null
   partnerAvatar?: string | null
 }
-
-const MOOD_OPTIONS = [
-  { emoji: "🥰", label: "Yêu đời", color: "#F7D6DF" },
-  { emoji: "😊", label: "Vui vẻ", color: "#D8EDE5" },
-  { emoji: "😌", label: "Bình yên", color: "#EDE8F5" },
-  { emoji: "😴", label: "Mệt mỏi", color: "#E8E8E0" },
-  { emoji: "🌧", label: "Buồn", color: "#C8D8E8" },
-  { emoji: "😤", label: "Bực bội", color: "#F5D0D0" },
-  { emoji: "🤩", label: "Hứng khởi", color: "#FFF0C0" },
-  { emoji: "🫂", label: "Cần ôm", color: "#F0D8F0" },
-]
 
 export default function MoodClient({
   entries,

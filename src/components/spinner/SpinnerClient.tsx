@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useToast } from '@/components/shared/Toast'
 import SpinWheel from "@/components/spinner/SpinWheel"
 import FilterBar from "@/components/spinner/FilterBar"
 import ResultCard from "@/components/spinner/ResultCard"
@@ -40,16 +41,11 @@ export default function SpinnerClient() {
   const [result, setResult] = useState<DateIdea | null>(null)
   const [isSpinning, setIsSpinning] = useState(false)
   const [history, setHistory] = useState<DateIdea[]>([])
-  const [toast, setToast] = useState<string | null>(null)
+  const { showToast } = useToast()
 
   useEffect(() => {
     setHistory(loadHistory())
   }, [])
-
-  function showToast(msg: string) {
-    setToast(msg)
-    setTimeout(() => setToast(null), 2500)
-  }
 
   const filteredIdeas = useMemo(
     () => filterIdeas(DATE_IDEAS, { cost: costFilter, location: locationFilter, duration: durationFilter }),
@@ -98,6 +94,7 @@ export default function SpinnerClient() {
       memory_date: new Date().toISOString(),
       source: "manual",
     })
+    showToast('Đã lưu vào Memory Jar ♡', 'success')
   }
 
   async function handleSaveQuest(idea: DateIdea) {
@@ -118,20 +115,11 @@ export default function SpinnerClient() {
       created_by: user.id,
       title: idea.title,
     })
+    showToast('Đã thêm vào Lovequest ✓', 'success')
   }
 
   return (
     <div className="px-4 space-y-6">
-      {/* Toast */}
-      {toast && (
-        <div
-          className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full text-sm font-medium shadow-lg"
-          style={{ backgroundColor: "#C0607A", color: "#FFFFFF" }}
-        >
-          {toast}
-        </div>
-      )}
-
       <SpinWheel
         isSpinning={isSpinning}
         segments={filteredIdeas.length > 0 ? filteredIdeas.length : 6}

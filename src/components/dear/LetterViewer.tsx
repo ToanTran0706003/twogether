@@ -28,6 +28,7 @@ function formatReceivedDate(dateStr: string) {
 export default function LetterViewer({ letter, onClose, onSaved }: LetterViewerProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState(false)
 
   async function handleSaveToJar() {
     setIsSaving(true)
@@ -51,7 +52,7 @@ export default function LetterViewer({ letter, onClose, onSaved }: LetterViewerP
         setTimeout(onSaved, 800)
       }
     } catch {
-      // silently fail
+      setSaveError(true)
     }
     setIsSaving(false)
   }
@@ -102,6 +103,10 @@ export default function LetterViewer({ letter, onClose, onSaved }: LetterViewerP
           {saved ? (
             <p className="text-xs text-center" style={{ color: "#C0607A" }}>
               Đã lưu vào Memory Jar 🫙
+            </p>
+          ) : saveError ? (
+            <p className="text-xs text-center" style={{ color: "#A32D2D" }}>
+              Không lưu được, thử lại nhé 💔
             </p>
           ) : (
             <button

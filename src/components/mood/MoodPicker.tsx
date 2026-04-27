@@ -2,17 +2,7 @@
 
 import { useState } from "react"
 import type { MoodEntry } from "@/types"
-
-const MOOD_OPTIONS = [
-  { emoji: "🥰", label: "Yêu đời", color: "#F7D6DF" },
-  { emoji: "😊", label: "Vui vẻ", color: "#D8EDE5" },
-  { emoji: "😌", label: "Bình yên", color: "#EDE8F5" },
-  { emoji: "😴", label: "Mệt mỏi", color: "#E8E8E0" },
-  { emoji: "🌧", label: "Buồn", color: "#C8D8E8" },
-  { emoji: "😤", label: "Bực bội", color: "#F5D0D0" },
-  { emoji: "🤩", label: "Hứng khởi", color: "#FFF0C0" },
-  { emoji: "🫂", label: "Cần ôm", color: "#F0D8F0" },
-]
+import { MOOD_OPTIONS } from "@/lib/mood-config"
 
 interface MoodPickerProps {
   todayEntry: MoodEntry | null

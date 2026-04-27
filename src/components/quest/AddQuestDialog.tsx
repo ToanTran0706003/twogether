@@ -10,12 +10,13 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import type { QuestItem } from '@/types'
 
 interface AddQuestDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   coupleId: string
-  onAdded: (quest: unknown) => void
+  onAdded: (quest: QuestItem) => void
 }
 
 const CATEGORIES = [
@@ -44,8 +45,8 @@ export default function AddQuestDialog({ open, onOpenChange, coupleId, onAdded }
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: title.trim(), category: category || null, couple_id: coupleId }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      const data = await res.json() as QuestItem
+      if (!res.ok) throw new Error((data as unknown as { error: string }).error)
       onAdded(data)
       setTitle("")
       setCategory("")
