@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
+import { sendPushToUser, getPartnerId } from "@/lib/push-server"
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -44,6 +45,15 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  const partnerId = await getPartnerId(user.id)
+  if (partnerId) {
+    await sendPushToUser(partnerId, {
+      title: `Người ấy cảm thấy ${emoji} hôm nay`,
+      body: note ? `"${note}"` : "Kiểm tra tâm trạng của người ấy nhé ♡",
+      url: "/mood",
+    })
   }
 
   return NextResponse.json(data, { status: 200 })

@@ -233,8 +233,12 @@ export default function SettingsClient({
   // Notification toggle
   async function handleNotifToggle() {
     const next = !notifOn
-    if (next && typeof Notification !== "undefined" && Notification.permission === "default") {
-      await Notification.requestPermission()
+    if (next) {
+      const { setupPushSubscription } = await import("@/lib/push-client")
+      await setupPushSubscription(userId)
+    } else {
+      const { removePushSubscription } = await import("@/lib/push-client")
+      await removePushSubscription()
     }
     localStorage.setItem(`twogether_notif_${userId}`, String(next))
     setNotifOn(next)
