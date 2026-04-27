@@ -76,6 +76,7 @@ export default function MoodSync({ coupleId, userId, partnerId, initialMoods = [
   }
 
   const myMoodInfo = myMood ? MOOD_OPTIONS.find((m) => m.emoji === myMood.emoji) : null
+  const partnerMoodInfo = partnerMood ? MOOD_OPTIONS.find((m) => m.emoji === partnerMood.emoji) : null
 
   return (
     <div className="px-4 py-5">
@@ -99,7 +100,7 @@ export default function MoodSync({ coupleId, userId, partnerId, initialMoods = [
         </div>
 
         <div className="flex-1">
-          <MoodCard label="Người ấy" mood={partnerMood} emoji={null} color={null} />
+          <MoodCard label="Người ấy" mood={partnerMood} emoji={partnerMoodInfo?.emoji} color={partnerMoodInfo?.color} />
         </div>
       </div>
 
