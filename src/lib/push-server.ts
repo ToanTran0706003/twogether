@@ -1,16 +1,21 @@
 import webpush from "web-push"
 import { createClient } from "@/lib/supabase/server"
 
-webpush.setVapidDetails(
-  process.env.VAPID_EMAIL!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-)
+function initVapid() {
+  const email = process.env.VAPID_EMAIL
+  const pubKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+  const privKey = process.env.VAPID_PRIVATE_KEY
+  if (!email || !pubKey || !privKey) return false
+  webpush.setVapidDetails(email, pubKey, privKey)
+  return true
+}
 
 export async function sendPushToUser(
   userId: string,
   payload: { title: string; body: string; url?: string }
 ) {
+  if (!initVapid()) return
+
   const supabase = await createClient()
   const { data: rows } = await supabase
     .from("push_subscriptions")
