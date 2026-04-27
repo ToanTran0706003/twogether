@@ -5,6 +5,7 @@ import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
 import type { LocketPhoto } from "@/types"
 import PhotoGrid from "./PhotoGrid"
+import UploadButton from "./UploadButton"
 
 interface LocketFeedProps {
   initialPhotos: LocketPhoto[]
@@ -23,83 +24,103 @@ export default function LocketFeed({ initialPhotos, coupleId, currentUserId }: L
       .channel(`locket-${coupleId}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "locket_photos",
-          filter: `couple_id=eq.${coupleId}`,
-        },
+        { event: "INSERT", schema: "public", table: "locket_photos", filter: `couple_id=eq.${coupleId}` },
         (payload) => {
-          setPhotos((prev) => [payload.new as LocketPhoto, ...prev])
+          const incoming = payload.new as LocketPhoto
+          // deduplicate: own uploads already added via onUploaded optimistic
+          setPhotos((prev) => {
+            if (prev.some((p) => p.id === incoming.id)) return prev
+            return [incoming, ...prev]
+          })
         }
       )
       .subscribe()
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
+    return () => { supabase.removeChannel(channel) }
   }, [coupleId, supabase])
 
+  function handleUploaded(photo: LocketPhoto) {
+    setPhotos((prev) => [photo, ...prev])
+  }
+
+  function handleReaction(photoId: string, reaction: string) {
+    setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, reaction } : p))
+    if (selectedPhoto?.id === photoId) {
+      setSelectedPhoto((p) => p ? { ...p, reaction } : p)
+    }
+  }
+
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="font-serif text-2xl font-bold" style={{ color: "#3A2832" }}>
+    <div style={{ padding: "16px 16px 100px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: "#3A2832", fontFamily: "var(--font-heading), serif", margin: 0 }}>
           Locket
         </h1>
-        <span className="text-sm" style={{ color: "#8A6A72" }}>
-          {photos.length} ảnh
-        </span>
+        <span style={{ fontSize: 13, color: "#8A6A72" }}>{photos.length} ảnh</span>
       </div>
 
       {photos.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-4xl mb-3">📱</p>
-          <p className="text-base font-medium" style={{ color: "#8A6A72" }}>
-            Chưa có ảnh nào
+        <div style={{ textAlign: "center", padding: "64px 0" }}>
+          <p style={{ fontSize: 48, marginBottom: 12 }}>📷</p>
+          <p style={{ fontSize: 16, fontWeight: 600, color: "#8A6A72", margin: "0 0 6px" }}>
+            Gửi ảnh đầu tiên hôm nay ♡
           </p>
-          <p className="text-sm mt-1" style={{ color: "#C0909C" }}>
-            Gửi ảnh đầu tiên cho người ấy nhé!
+          <p style={{ fontSize: 13, color: "#C0909C", margin: 0 }}>
+            Nhấn nút 📷 để chụp và gửi cho người ấy
           </p>
         </div>
       ) : (
         <PhotoGrid
           photos={photos}
           currentUserId={currentUserId}
-          selectedPhoto={selectedPhoto}
           onSelectPhoto={setSelectedPhoto}
         />
       )}
 
+      <UploadButton coupleId={coupleId} onUploaded={handleUploaded} />
+
       {selectedPhoto && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          style={{
+            position: "fixed", inset: 0, zIndex: 50,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            backgroundColor: "rgba(0,0,0,0.6)", padding: 16,
+          }}
           onClick={() => setSelectedPhoto(null)}
         >
           <div
-            className="relative w-full max-w-sm rounded-2xl overflow-hidden"
+            style={{ width: "100%", maxWidth: 360, borderRadius: 20, overflow: "hidden", backgroundColor: "white" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="relative w-full aspect-square">
+            <div style={{ position: "relative", width: "100%", aspectRatio: "1/1" }}>
               <Image
                 src={selectedPhoto.photo_url}
                 alt={selectedPhoto.caption ?? ""}
                 fill
-                className="object-cover"
+                style={{ objectFit: "cover" }}
                 unoptimized
               />
             </div>
-            <div className="p-4" style={{ backgroundColor: "#FFFFFF" }}>
-              <div className="flex justify-between items-center">
+            <div style={{ padding: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                 <div>
-                  <p className="text-sm font-medium" style={{ color: "#3A2832" }}>
-                    {selectedPhoto.caption ?? "Không có chú thích"}
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "#3A2832", margin: "0 0 3px" }}>
+                    {selectedPhoto.caption || "Không có chú thích"}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: "#8A6A72" }}>
-                    {new Date(selectedPhoto.taken_at).toLocaleString("vi-VN")}
+                  <p style={{ fontSize: 12, color: "#8A6A72", margin: 0 }}>
+                    {selectedPhoto.sender_id === currentUserId ? "Bạn" : "Người ấy"} •{" "}
+                    {new Date(selectedPhoto.taken_at).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "numeric" })}
                   </p>
                 </div>
-                <ReactionPicker photoId={selectedPhoto.id} currentReaction={selectedPhoto.reaction} />
+                {selectedPhoto.reaction && (
+                  <span style={{ fontSize: 24 }}>{selectedPhoto.reaction}</span>
+                )}
               </div>
+              <ReactionPicker
+                photoId={selectedPhoto.id}
+                currentReaction={selectedPhoto.reaction}
+                onReact={handleReaction}
+              />
             </div>
           </div>
         </div>
@@ -108,33 +129,45 @@ export default function LocketFeed({ initialPhotos, coupleId, currentUserId }: L
   )
 }
 
-function ReactionPicker({ photoId, currentReaction }: { photoId: string; currentReaction: string | null }) {
+function ReactionPicker({
+  photoId,
+  currentReaction,
+  onReact,
+}: {
+  photoId: string
+  currentReaction: string | null
+  onReact: (photoId: string, reaction: string) => void
+}) {
   const REACTIONS = ["❤️", "😍", "🥹", "😘", "🤗"]
   const [reacted, setReacted] = useState<string | null>(currentReaction)
   const [isLoading, setIsLoading] = useState(false)
 
   async function handleReact(emoji: string) {
     if (isLoading) return
+    const next = reacted === emoji ? null : emoji
+    setReacted(next)
+    if (next) onReact(photoId, next)
     setIsLoading(true)
-    setReacted(emoji)
     await fetch("/api/locket", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ photo_id: photoId, reaction: emoji }),
+      body: JSON.stringify({ photo_id: photoId, reaction: next }),
     })
     setIsLoading(false)
   }
 
   return (
-    <div className="flex gap-1">
+    <div style={{ display: "flex", gap: 6, justifyContent: "space-between" }}>
       {REACTIONS.map((r) => (
         <button
           key={r}
           onClick={() => handleReact(r)}
-          className={`w-8 h-8 rounded-full text-lg flex items-center justify-center transition-transform ${
-            reacted === r ? "scale-125" : "hover:scale-110"
-          }`}
-          style={{ backgroundColor: reacted === r ? "#F5EDE8" : "transparent" }}
+          style={{
+            flex: 1, height: 44, borderRadius: 12, border: "none", fontSize: 22,
+            cursor: "pointer", transition: "transform 0.15s",
+            backgroundColor: reacted === r ? "#F5EDE8" : "#FDF8F5",
+            transform: reacted === r ? "scale(1.2)" : "scale(1)",
+          }}
         >
           {r}
         </button>

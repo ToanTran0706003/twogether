@@ -2,7 +2,6 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import TopNav from "@/components/shared/TopNav"
 import LocketFeed from "@/components/locket/LocketFeed"
-import UploadButton from "@/components/locket/UploadButton"
 import HugButton from "@/components/locket/HugButton"
 import type { LocketPhoto } from "@/types"
 
@@ -22,7 +21,7 @@ export default async function LocketPage() {
 
   const { data: photos } = await supabase
     .from("locket_photos")
-    .select("*, sender:sender_id(name)")
+    .select("*")
     .eq("couple_id", couple.id)
     .order("taken_at", { ascending: false })
     .limit(50)
@@ -37,7 +36,6 @@ export default async function LocketPage() {
           currentUserId={user.id}
         />
       </main>
-      <UploadButton coupleId={couple.id} />
       <HugButton coupleId={couple.id} />
     </>
   )
