@@ -6,6 +6,7 @@ import type { Memory } from "@/types"
 import JarHero from "./JarHero"
 import MemoryCard from "./MemoryCard"
 import AddMemoryDialog from "./AddMemoryDialog"
+import Slideshow from "./Slideshow"
 
 type FilterType = "all" | "locket" | "quest" | "letter" | "manual"
 
@@ -20,6 +21,7 @@ const FILTERS: { value: FilterType; label: string }[] = [
 interface JarClientProps {
   initialMemories: Memory[]
   totalCount: number
+  yearCount: number
   coupleId: string
   pageSize: number
 }
@@ -27,6 +29,7 @@ interface JarClientProps {
 export default function JarClient({
   initialMemories,
   totalCount,
+  yearCount,
   coupleId,
   pageSize,
 }: JarClientProps) {
@@ -36,6 +39,7 @@ export default function JarClient({
   const [isLoading, setIsLoading] = useState(false)
   const [hasMore, setHasMore] = useState(initialMemories.length < totalCount)
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null)
+  const [showSlideshow, setShowSlideshow] = useState(false)
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
 
@@ -90,7 +94,11 @@ export default function JarClient({
 
   return (
     <div className="px-4">
-      <JarHero totalCount={totalCount} />
+      <JarHero
+        totalCount={totalCount}
+        yearCount={yearCount}
+        onSlideshow={() => setShowSlideshow(true)}
+      />
 
       <div className="flex gap-2 mb-4 overflow-x-auto pb-1 -mx-4 px-4">
         {FILTERS.map((f) => (
@@ -177,6 +185,14 @@ export default function JarClient({
         <MemoryDetailDialog
           memory={selectedMemory}
           onClose={() => setSelectedMemory(null)}
+        />
+      )}
+
+      {showSlideshow && (
+        <Slideshow
+          coupleId={coupleId}
+          year={new Date().getFullYear()}
+          onClose={() => setShowSlideshow(false)}
         />
       )}
     </div>

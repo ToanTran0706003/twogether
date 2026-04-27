@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import {
   Dialog,
@@ -29,10 +29,57 @@ export default function AddMemoryDialog({
     const d = new Date()
     return d.toISOString().split("T")[0]
   })
-  const [mediaUrl, setMediaUrl] = useState("")
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    setError("")
+
+    try {
+      // Convert to webp via canvas
+      const bitmap = await createImageBitmap(file)
+      const canvas = document.createElement("canvas")
+      canvas.width = bitmap.width
+      canvas.height = bitmap.height
+      const ctx = canvas.getContext("2d")!
+      ctx.drawImage(bitmap, 0, 0)
+
+      const webpBlob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (blob) => {
+            if (blob) resolve(blob)
+            else reject(new Error("Canvas toBlob failed"))
+          },
+          "image/webp",
+          0.85
+        )
+      })
+
+      const path = `${coupleId}/memories/${Date.now()}.webp`
+      const { error: uploadError } = await supabase.storage
+        .from("photos")
+        .upload(path, webpBlob, { contentType: "image/webp", upsert: false })
+
+      if (uploadError) throw uploadError
+
+      const { data: urlData } = supabase.storage.from("photos").getPublicUrl(path)
+      setMediaUrl(urlData.publicUrl)
+      setPreviewUrl(urlData.publicUrl)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Tải ảnh thất bại")
+    } finally {
+      setIsUploading(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -52,7 +99,7 @@ export default function AddMemoryDialog({
         type: "manual",
         title: title.trim(),
         content: content.trim() || null,
-        media_url: mediaUrl.trim() || null,
+        media_url: mediaUrl,
         memory_date: new Date(memoryDate).toISOString(),
         source: "manual",
       })
@@ -69,7 +116,8 @@ export default function AddMemoryDialog({
 
     setTitle("")
     setContent("")
-    setMediaUrl("")
+    setMediaUrl(null)
+    setPreviewUrl(null)
     setMemoryDate(new Date().toISOString().split("T")[0])
     onOpenChange(false)
     setIsLoading(false)
@@ -145,20 +193,32 @@ export default function AddMemoryDialog({
               className="block text-xs font-medium mb-1.5"
               style={{ color: "#8A6A72" }}
             >
-              Ảnh (URL — tùy chọn)
+              Ảnh (tùy chọn)
             </label>
             <input
-              type="url"
-              value={mediaUrl}
-              onChange={(e) => setMediaUrl(e.target.value)}
-              placeholder="https://..."
-              className="w-full px-3 py-2 rounded-xl border text-sm outline-none focus:ring-2 transition-all"
-              style={{
-                borderColor: "#F0E4DF",
-                backgroundColor: "#FDF8F5",
-                color: "#3A2832",
-              }}
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              disabled={isUploading}
+              className="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-medium file:cursor-pointer cursor-pointer"
+              style={{ color: "#8A6A72" }}
             />
+            {isUploading && (
+              <p className="text-xs mt-1.5" style={{ color: "#C0607A" }}>
+                Đang tải ảnh...
+              </p>
+            )}
+            {previewUrl && !isUploading && (
+              <div className="mt-2 rounded-xl overflow-hidden border" style={{ borderColor: "#F0E4DF" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="w-full h-32 object-cover"
+                />
+              </div>
+            )}
           </div>
 
           {error && (
@@ -178,11 +238,11 @@ export default function AddMemoryDialog({
             </button>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isUploading}
               className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
               style={{ backgroundColor: "#E8A0B0" }}
             >
-              {isLoading ? "Đang lưu..." : "Lưu vào lọ"}
+              {isLoading ? "Đang lưu..." : isUploading ? "Đang tải ảnh..." : "Lưu vào lọ"}
             </button>
           </div>
         </form>

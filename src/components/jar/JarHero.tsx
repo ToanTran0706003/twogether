@@ -2,9 +2,11 @@
 
 interface JarHeroProps {
   totalCount: number
+  yearCount: number
+  onSlideshow: () => void
 }
 
-export default function JarHero({ totalCount }: JarHeroProps) {
+export default function JarHero({ totalCount, yearCount, onSlideshow }: JarHeroProps) {
   const currentYear = new Date().getFullYear()
 
   return (
@@ -24,14 +26,22 @@ export default function JarHero({ totalCount }: JarHeroProps) {
         className="font-serif text-3xl font-bold"
         style={{ color: "#C0607A" }}
       >
-        {totalCount}
+        {yearCount}
       </p>
       <p className="text-sm font-medium" style={{ color: "#8A6A72" }}>
-        kỷ niệm trong lọ
+        kỷ niệm năm {currentYear}
       </p>
       <p className="text-xs mt-1" style={{ color: "#C0909C" }}>
-        {currentYear}
+        {totalCount} kỷ niệm trong lọ
       </p>
+
+      <button
+        onClick={onSlideshow}
+        className="mt-4 px-4 py-2 rounded-full text-sm font-medium border transition-colors hover:opacity-80"
+        style={{ borderColor: "#E8A0B0", color: "#C0607A", backgroundColor: "#FDF8F5" }}
+      >
+        Xem lại năm {currentYear} →
+      </button>
     </div>
   )
 }

@@ -26,6 +26,14 @@ export default async function JarPage() {
     .order("memory_date", { ascending: false })
     .range(0, PAGE_SIZE - 1)
 
+  const currentYear = new Date().getFullYear()
+  const { count: yearCount } = await supabase
+    .from("memories")
+    .select("*", { count: "exact", head: true })
+    .eq("couple_id", couple.id)
+    .gte("memory_date", `${currentYear}-01-01`)
+    .lte("memory_date", `${currentYear}-12-31`)
+
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: "#FDF8F5" }}>
       <TopNav />
@@ -42,6 +50,7 @@ export default async function JarPage() {
       <JarClient
         initialMemories={initialMemories ?? []}
         totalCount={count ?? 0}
+        yearCount={yearCount ?? 0}
         coupleId={couple.id}
         pageSize={PAGE_SIZE}
       />
