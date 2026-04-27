@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -127,4 +128,93 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Design system tokens */
+:root {
+  --bg: #FDF8F5;
+  --bg-deep: #F5ECE5;
+  --primary: #E8A0B0;
+  --primary-soft: #F4C8D0;
+  --primary-dark: #C0607A;
+  --secondary: #A8C5B5;
+  --secondary-soft: #C9DDD2;
+  --lavender: #C4B5D8;
+  --lavender-soft: #DCD2E8;
+  --amber: #E8C8A0;
+  --amber-soft: #F2DDC2;
+  --purple-soft: #D8C7DC;
+  --dark: #3A2832;
+  --mid: #7A5A65;
+  --muted: #B89BA3;
+  --line: rgba(58,40,50,0.08);
+  --line-strong: rgba(58,40,50,0.14);
+  --shadow-sm: 0 1px 2px rgba(192,96,122,0.04), 0 2px 8px rgba(192,96,122,0.05);
+  --shadow-md: 0 2px 6px rgba(192,96,122,0.06), 0 8px 24px rgba(192,96,122,0.08);
+  --shadow-lg: 0 8px 28px rgba(192,96,122,0.12), 0 24px 48px rgba(192,96,122,0.10);
+}
+
+/* Typography helpers */
+.serif { font-family: var(--font-heading), 'Times New Roman', serif; }
+.serif-i { font-family: var(--font-heading), 'Times New Roman', serif; font-style: italic; }
+
+/* Chip component */
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 32px; padding: 0 14px; border-radius: 100px;
+  font-size: 12.5px; font-weight: 500;
+  background: white; color: var(--mid);
+  border: 1px solid var(--line);
+  white-space: nowrap; cursor: pointer;
+}
+.chip.active { background: var(--primary-dark); color: white; border-color: var(--primary-dark); }
+.chip.soft { background: var(--primary-soft); color: var(--primary-dark); border-color: transparent; }
+.chip.tag { height: 22px; padding: 0 8px; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+
+/* Tab bar */
+.tg-tabs {
+  display: flex; background: var(--bg-deep); border-radius: 100px; padding: 4px;
+}
+.tg-tabs button {
+  flex: 1; height: 38px; border-radius: 100px; border: none;
+  font-weight: 500; font-size: 13px;
+  background: transparent; color: var(--mid); cursor: pointer;
+}
+.tg-tabs button.active {
+  background: white; color: var(--primary-dark);
+  font-weight: 600; box-shadow: var(--shadow-sm);
+}
+
+/* Section header */
+.section-h {
+  font-weight: 600; font-size: 14px;
+  color: var(--mid); letter-spacing: 0.2px;
+  margin-bottom: 12px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* Card dark variant */
+.card-dark {
+  background: #3A2832; color: white; border-radius: 24px;
+}
+
+/* FAB */
+.btn-fab {
+  position: absolute; right: 16px; bottom: 96px;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--primary-dark); color: white;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 24px rgba(192,96,122,0.4);
+  border: none; cursor: pointer; z-index: 5;
+}
+
+/* Keyframes */
+@keyframes pulse-heart {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+@keyframes float-up {
+  0% { transform: translateY(0) rotate(0); opacity: 0; }
+  20% { opacity: .6; }
+  100% { transform: translateY(-40px) rotate(15deg); opacity: 0; }
 }

@@ -1,0 +1,101 @@
+import { createServerClient } from "@supabase/ssr"
+import { NextResponse, type NextRequest } from "next/server"
+
+export async function proxy(request: NextRequest) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !anonKey) {
+    return NextResponse.next({ request })
+  }
+
+  let supabaseResponse = NextResponse.next({ request })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const pathname = request.nextUrl.pathname
+
+  const APP_PATHS = ["/home", "/locket", "/quest", "/mood", "/dear", "/jar", "/spinner", "/settings"]
+  const isAppRoute = APP_PATHS.some((p) => pathname.startsWith(p))
+  const isInvitePage = pathname.startsWith("/invite")
+  const isLoginPage = pathname.startsWith("/login")
+
+  // 1. Not logged in → redirect to /login
+  if ((isAppRoute || isInvitePage) && !user) {
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = "/login"
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  // 2. Logged in on a login page → check couple status
+  if (isLoginPage && user) {
+    const { data: couple } = await supabase
+      .from("couples")
+      .select("id")
+      .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
+      .maybeSingle()
+
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = couple ? "/home" : "/invite"
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  // 3. Logged in on an app route → must have a couple
+  if (isAppRoute && user) {
+    const { data: couple } = await supabase
+      .from("couples")
+      .select("id")
+      .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
+      .maybeSingle()
+
+    if (!couple) {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/invite"
+      return NextResponse.redirect(redirectUrl)
+    }
+  }
+
+  // 4. Already has couple but visiting /invite → redirect to /home
+  if (isInvitePage && user) {
+    const { data: couple } = await supabase
+      .from("couples")
+      .select("id")
+      .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
+      .maybeSingle()
+
+    if (couple) {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/home"
+      return NextResponse.redirect(redirectUrl)
+    }
+  }
+
+  return supabaseResponse
+}
+
+export const config = {
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
+}

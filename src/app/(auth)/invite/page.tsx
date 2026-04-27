@@ -1,11 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 
 export default function InvitePage() {
-  const [activeTab, setActiveTab] = useState<"create" | "join">("create")
+  const [tab, setTab] = useState<"create" | "join">("create")
   const [inviteCode, setInviteCode] = useState<string | null>(null)
   const [joinCode, setJoinCode] = useState("")
   const [copied, setCopied] = useState(false)
@@ -28,10 +26,7 @@ export default function InvitePage() {
   }
 
   async function handleJoinCouple() {
-    if (!joinCode.trim()) {
-      setError("Vui lòng nhập mã mời")
-      return
-    }
+    if (!joinCode.trim()) { setError("Vui lòng nhập mã mời"); return }
     setIsLoading(true)
     setError(null)
     try {
@@ -58,116 +53,82 @@ export default function InvitePage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-8">
-        <div className="text-center space-y-3">
-          <h1 className="text-4xl font-serif font-bold" style={{ color: "#C0607A" }}>
-            TwoGether ♡
+    <main className="min-h-screen flex flex-col" style={{ backgroundColor: "#FDF8F5" }}>
+      <div style={{ flex: 1, padding: "8px 16px 24px", display: "flex", flexDirection: "column" }}>
+        <div style={{ paddingBottom: 20, paddingTop: 16 }}>
+          <h1 style={{ fontSize: 30, fontWeight: 600, color: "#3A2832", margin: "4px 0 6px", letterSpacing: -0.5, fontFamily: "var(--font-heading), serif" }}>
+            Kết nối với <em style={{ color: "#C0607A" }}>người yêu</em>
           </h1>
-          <p className="text-base" style={{ color: "#8A6A72" }}>
-            Kết nối với người bạn yêu thương
+          <p style={{ fontSize: 14, color: "#7A5A65", margin: 0, lineHeight: 1.5 }}>
+            Mỗi tài khoản chỉ kết nối với một người. Hãy cùng nhau bắt đầu hành trình ♡
           </p>
         </div>
 
-        <div
-          className="rounded-2xl p-6 shadow-sm border"
-          style={{ backgroundColor: "#FFFFFF", borderColor: "#F0E4DF" }}
-        >
-          <div
-            className="grid grid-cols-2 gap-1 p-1 rounded-lg mb-5"
-            style={{ backgroundColor: "#F5EDE8" }}
-          >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 18, padding: "12px 0 22px" }}>
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: "linear-gradient(135deg, #C9DDD2 0%, #A8C5B5 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-heading), serif", fontStyle: "italic", color: "white", fontSize: 27, fontWeight: 600 }}>M</div>
+          <div style={{ animation: "pulse-heart 2s ease-in-out infinite" }}>
+            <svg width="44" height="44" viewBox="0 0 24 24"><path d="M12 21s-7-4.5-9-9.5C1.5 7 5 3 8.5 4c1.7.5 2.7 1.6 3.5 3 .8-1.4 1.8-2.5 3.5-3C19 3 22.5 7 21 11.5c-2 5-9 9.5-9 9.5z" fill="#E8A0B0"/></svg>
+          </div>
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: "linear-gradient(135deg, #F4C8D0 0%, #E8A0B0 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-heading), serif", fontStyle: "italic", color: "white", fontSize: 27, fontWeight: 600 }}>L</div>
+        </div>
+
+        <div className="tg-tabs" style={{ marginBottom: 20 }}>
+          <button className={tab === "create" ? "active" : ""} onClick={() => setTab("create")}>Tạo couple</button>
+          <button className={tab === "join" ? "active" : ""} onClick={() => setTab("join")}>Nhập mã mời</button>
+        </div>
+
+        {tab === "create" ? (
+          <div style={{ background: "white", borderRadius: 20, padding: 24, boxShadow: "var(--shadow-sm)", textAlign: "center" }}>
+            {!inviteCode ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <p style={{ fontSize: 14, color: "#7A5A65", margin: 0 }}>Tạo couple mới và chia sẻ mã mời với người ấy</p>
+                <button
+                  onClick={handleCreateCouple}
+                  disabled={isLoading}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 52, borderRadius: 100, background: "#E8A0B0", color: "white", border: "none", fontWeight: 600, fontSize: 15, cursor: "pointer", boxShadow: "0 4px 14px rgba(232,160,176,0.4)", opacity: isLoading ? 0.7 : 1 }}
+                >
+                  {isLoading ? "Đang tạo..." : "Tạo couple mới ♡"}
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#B89BA3", textTransform: "uppercase", letterSpacing: 1.5 }}>Mã mời của bạn</div>
+                <div style={{ fontSize: 38, fontWeight: 600, color: "#C0607A", letterSpacing: 6, fontFamily: "var(--font-heading), serif" }}>{inviteCode}</div>
+                <p style={{ fontSize: 12, color: "#B89BA3", margin: 0 }}>Chia sẻ mã này với người ấy để kết nối</p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={handleCopy} style={{ flex: 1, height: 44, borderRadius: 100, background: "#F4C8D0", color: "#C0607A", border: "none", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                    {copied ? "Đã copy! ✓" : "Sao chép"}
+                  </button>
+                  <button onClick={() => navigator.share?.({ text: inviteCode })} style={{ flex: 1, height: 44, borderRadius: 100, background: "#C0607A", color: "white", border: "none", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                    Chia sẻ
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ background: "white", borderRadius: 20, padding: 22, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 14 }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: "#B89BA3", textTransform: "uppercase", letterSpacing: 1.5 }}>Mã mời từ người yêu</label>
+            <input
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              placeholder="Nhập mã mời..."
+              maxLength={8}
+              style={{ width: "100%", height: 56, padding: "0 16px", background: "#FDF8F5", border: "1.5px solid rgba(58,40,50,0.08)", borderRadius: 14, fontSize: 16, letterSpacing: 2, textAlign: "center", fontWeight: 600, color: "#3A2832", outline: "none", fontFamily: "monospace" }}
+            />
             <button
-              onClick={() => setActiveTab("create")}
-              className="px-4 py-2 rounded-md text-sm font-medium transition-all"
-              style={{
-                backgroundColor: activeTab === "create" ? "#FFFFFF" : "transparent",
-                color: activeTab === "create" ? "#3A2832" : "#8A6A72",
-                boxShadow: activeTab === "create" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
-              }}
+              onClick={handleJoinCouple}
+              disabled={isLoading}
+              style={{ width: "100%", height: 52, borderRadius: 100, background: "#C0607A", color: "white", border: "none", fontWeight: 600, fontSize: 15, cursor: "pointer", boxShadow: "0 6px 18px rgba(192,96,122,0.28)", opacity: isLoading ? 0.7 : 1 }}
             >
-              Tạo couple mới
-            </button>
-            <button
-              onClick={() => setActiveTab("join")}
-              className="px-4 py-2 rounded-md text-sm font-medium transition-all"
-              style={{
-                backgroundColor: activeTab === "join" ? "#FFFFFF" : "transparent",
-                color: activeTab === "join" ? "#3A2832" : "#8A6A72",
-                boxShadow: activeTab === "join" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
-              }}
-            >
-              Nhập mã mời
+              {isLoading ? "Đang tham gia..." : "Tham gia ♡"}
             </button>
           </div>
+        )}
 
-          {activeTab === "create" && (
-            <div>
-              {!inviteCode ? (
-                <div className="space-y-4">
-                  <p className="text-sm text-center" style={{ color: "#8A6A72" }}>
-                    Tạo một couple mới và chia sẻ mã mời với người ấy
-                  </p>
-                  <Button
-                    onClick={handleCreateCouple}
-                    className="w-full h-11 text-base font-medium"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Đang tạo..." : "Tạo couple mới"}
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <p className="text-sm text-center" style={{ color: "#8A6A72" }}>
-                    Chia sẻ mã mời này với người ấy để kết nối
-                  </p>
-                  <div className="flex gap-2">
-                    <div
-                      className="flex-1 flex items-center justify-center h-12 rounded-lg font-mono text-2xl font-bold tracking-widest"
-                      style={{ backgroundColor: "#FDF8F5", color: "#C0607A", border: "1px solid #F0E4DF" }}
-                    >
-                      {inviteCode}
-                    </div>
-                    <Button
-                      onClick={handleCopy}
-                      variant="outline"
-                      className="h-12 px-4"
-                      style={{ borderColor: "#E8A0B0", color: "#C0607A" }}
-                    >
-                      {copied ? "Đã copy!" : "Copy"}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === "join" && (
-            <div className="space-y-4">
-              <p className="text-sm text-center" style={{ color: "#8A6A72" }}>
-                Nhập mã mời từ người ấy để tham gia couple
-              </p>
-              <Input
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                placeholder="Nhập mã mời..."
-                className="h-12 text-center font-mono tracking-widest text-lg"
-                maxLength={8}
-              />
-              <Button
-                onClick={handleJoinCouple}
-                className="w-full h-11 text-base font-medium"
-                disabled={isLoading}
-              >
-                {isLoading ? "Đang tham gia..." : "Tham gia"}
-              </Button>
-            </div>
-          )}
-
-          {error && (
-            <p className="text-sm text-center text-red-500 mt-3">{error}</p>
-          )}
-        </div>
+        {error && (
+          <p style={{ fontSize: 13, textAlign: "center", color: "#ef4444", marginTop: 12 }}>{error}</p>
+        )}
       </div>
     </main>
   )

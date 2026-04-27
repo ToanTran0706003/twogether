@@ -1,62 +1,30 @@
 import Link from "next/link"
-import Image from "next/image"
-import { createClient } from "@/lib/supabase/server"
 
-export default async function TopNav() {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-
-  const { data: couple } = await supabase
-    .from("couples")
-    .select("user_a_id, user_b_id")
-    .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
-    .single()
-
-  if (!couple) return null
-
-  const partnerId = couple.user_a_id === user.id ? couple.user_b_id : couple.user_a_id
-
-  const [myProfile, partnerProfile] = await Promise.all([
-    supabase.from("users").select("avatar_url").eq("id", user.id).single(),
-    partnerId
-      ? supabase.from("users").select("avatar_url").eq("id", partnerId).single()
-      : Promise.resolve({ data: null }),
-  ])
-
+export default function TopNav() {
   return (
-    <header
-      className="sticky top-0 z-40 flex items-center justify-between px-4 h-14 border-b"
-      style={{ backgroundColor: "#FDF8F5", borderColor: "#F0E4DF" }}
-    >
-      <Link href="/home" className="font-serif text-xl font-bold" style={{ color: "#C0607A" }}>
-        TwoGether ♡
-      </Link>
+    <header style={{
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      padding: "8px 16px 14px",
+      backgroundColor: "#FDF8F5",
+    }}>
+      <div style={{ display: "inline-flex", alignItems: "baseline", gap: 4 }}>
+        <span style={{ fontSize: 22, fontWeight: 600, color: "#C0607A", letterSpacing: -0.5, fontFamily: "var(--font-heading), serif" }}>
+          Two<em>gether</em>
+        </span>
+        <span style={{ fontSize: 12, color: "#E8A0B0" }}>♡</span>
+      </div>
 
-      <div className="flex -space-x-2">
-        {myProfile.data?.avatar_url && (
-          <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden relative flex-shrink-0">
-            <Image
-              src={myProfile.data.avatar_url}
-              alt="Me"
-              fill
-              className="object-cover"
-              unoptimized
-            />
-          </div>
-        )}
-        {partnerProfile.data?.avatar_url && (
-          <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden relative flex-shrink-0">
-            <Image
-              src={partnerProfile.data.avatar_url}
-              alt="Partner"
-              fill
-              className="object-cover"
-              unoptimized
-            />
-          </div>
-        )}
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <Link href="/settings" style={{
+          width: 38, height: 38, borderRadius: "50%", background: "white",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 1px 2px rgba(192,96,122,0.04), 0 2px 8px rgba(192,96,122,0.05)",
+          textDecoration: "none",
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9M9 21a3 3 0 006 0" stroke="#3A2832" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </Link>
       </div>
     </header>
   )
