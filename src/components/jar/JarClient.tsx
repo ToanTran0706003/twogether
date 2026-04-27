@@ -167,8 +167,8 @@ export default function JarClient({
 
       <button
         onClick={() => setIsAddOpen(true)}
-        className="fixed bottom-24 right-4 w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-lg z-40 transition-transform hover:scale-110 active:scale-95"
-        style={{ backgroundColor: "#C0607A", color: "#FFFFFF" }}
+        className="fixed right-4 w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-lg z-40 transition-transform hover:scale-110 active:scale-95"
+        style={{ backgroundColor: "#C0607A", color: "#FFFFFF", bottom: "calc(80px + env(safe-area-inset-bottom))" }}
         aria-label="Thêm kỷ niệm"
       >
         ➕

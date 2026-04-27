@@ -77,7 +77,7 @@ export default function UploadButton({ coupleId, onUploaded }: UploadButtonProps
         disabled={isUploading}
         aria-label="Gửi ảnh mới"
         style={{
-          position: "fixed", bottom: 88, right: 16, width: 56, height: 56,
+          position: "fixed", bottom: "calc(80px + env(safe-area-inset-bottom))", right: 16, width: 56, height: 56,
           borderRadius: "50%", backgroundColor: "#C0607A", color: "white",
           border: "none", fontSize: 24, cursor: "pointer", zIndex: 40,
           boxShadow: "0 4px 16px rgba(192,96,122,0.4)",
@@ -115,7 +115,7 @@ export default function UploadButton({ coupleId, onUploaded }: UploadButtonProps
               maxLength={100}
               style={{
                 width: "100%", height: 48, padding: "0 14px", borderRadius: 12,
-                border: "1.5px solid rgba(58,40,50,0.12)", fontSize: 14, color: "#3A2832",
+                border: "1.5px solid rgba(58,40,50,0.12)", fontSize: 16, color: "#3A2832",
                 background: "#FDF8F5", outline: "none", boxSizing: "border-box",
               }}
               onKeyDown={(e) => e.key === "Enter" && handleUpload()}

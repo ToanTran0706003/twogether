@@ -26,37 +26,50 @@ export default function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 z-50 flex justify-around items-start"
-      style={{
-        paddingTop: 8,
-        paddingLeft: 8,
-        paddingRight: 8,
-        paddingBottom: "calc(18px + env(safe-area-inset-bottom))",
-        backgroundColor: "rgba(253,248,245,0.92)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        borderTop: "1px solid rgba(58,40,50,0.08)",
-      }}
-    >
-      {NAV_ITEMS.map(({ href, label, icon }) => {
-        const active = pathname === href || pathname.startsWith(href + "/")
-        return (
-          <Link
-            key={href}
-            href={href}
-            style={{
-              display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-              fontSize: 10.5, fontWeight: 500,
-              color: active ? "#C0607A" : "#B89BA3",
-              flex: 1, padding: "6px 0", textDecoration: "none",
-            }}
-          >
-            <span style={{ width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center" }}>{icon}</span>
-            <span>{label}</span>
-          </Link>
-        )
-      })}
-    </nav>
+    <>
+      {/* Spacer so content is not hidden behind nav */}
+      <div style={{ height: "calc(64px + env(safe-area-inset-bottom))" }} />
+
+      <nav
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: "rgba(253,248,245,0.95)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          borderTop: "1px solid rgba(58,40,50,0.08)",
+          display: "flex",
+          justifyContent: "space-around",
+          alignItems: "flex-start",
+          paddingTop: 8,
+          paddingLeft: 8,
+          paddingRight: 8,
+          paddingBottom: "calc(18px + env(safe-area-inset-bottom))",
+          zIndex: 50,
+        }}
+      >
+        {NAV_ITEMS.map(({ href, label, icon }) => {
+          const active = pathname === href || pathname.startsWith(href + "/")
+          return (
+            <Link
+              key={href}
+              href={href}
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+                fontSize: 10.5, fontWeight: active ? 600 : 500,
+                color: active ? "#C0607A" : "#B89BA3",
+                flex: 1, padding: "6px 0", textDecoration: "none",
+                minHeight: 44,
+              }}
+            >
+              <span style={{ width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center" }}>{icon}</span>
+              <span>{label}</span>
+            </Link>
+          )
+        })}
+      </nav>
+    </>
   )
 }

@@ -146,11 +146,12 @@ export default function AddMemoryDialog({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Tiêu đề kỷ niệm"
               required
-              className="w-full px-3 py-2 rounded-xl border text-sm outline-none focus:ring-2 transition-all"
+              className="w-full px-3 py-2 rounded-xl border outline-none focus:ring-2 transition-all"
               style={{
                 borderColor: "#F0E4DF",
                 backgroundColor: "#FDF8F5",
                 color: "#3A2832",
+                fontSize: 16,
               }}
             />
           </div>
@@ -161,11 +162,12 @@ export default function AddMemoryDialog({
               onChange={(e) => setContent(e.target.value)}
               placeholder="Mô tả khoảnh khắc này (tùy chọn)"
               rows={4}
-              className="w-full px-3 py-2 rounded-xl border text-sm leading-relaxed outline-none focus:ring-2 transition-all resize-none"
+              className="w-full px-3 py-2 rounded-xl border leading-relaxed outline-none focus:ring-2 transition-all resize-none"
               style={{
                 borderColor: "#F0E4DF",
                 backgroundColor: "#FDF8F5",
                 color: "#3A2832",
+                fontSize: 16,
               }}
             />
           </div>
@@ -182,11 +184,12 @@ export default function AddMemoryDialog({
               value={memoryDate}
               onChange={(e) => setMemoryDate(e.target.value)}
               required
-              className="w-full px-3 py-2 rounded-xl border text-sm outline-none focus:ring-2 transition-all"
+              className="w-full px-3 py-2 rounded-xl border outline-none focus:ring-2 transition-all"
               style={{
                 borderColor: "#F0E4DF",
                 backgroundColor: "#FDF8F5",
                 color: "#3A2832",
+                fontSize: 16,
               }}
             />
           </div>

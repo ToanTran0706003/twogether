@@ -141,13 +141,14 @@ export default function WriteLetterDialog({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Tiêu đề (tùy chọn)"
-              className="w-full px-3 py-2 rounded-xl border text-sm outline-none focus:ring-2 transition-all"
+              className="w-full px-3 py-2 rounded-xl border outline-none focus:ring-2 transition-all"
               style={{
                 borderColor: "#F0E4DF",
                 backgroundColor: "#FDF8F5",
                 color: "#3A2832",
                 fontFamily: "Georgia, serif",
                 fontStyle: "italic",
+                fontSize: 16,
               }}
             />
           </div>
@@ -159,7 +160,7 @@ export default function WriteLetterDialog({
               placeholder="Những lời bạn muốn gửi đến nửa kia…"
               rows={7}
               required
-              className="w-full px-3 py-2 rounded-xl border text-sm leading-relaxed outline-none focus:ring-2 transition-all resize-none"
+              className="w-full px-3 py-2 rounded-xl border leading-relaxed outline-none focus:ring-2 transition-all resize-none"
               style={{
                 borderColor: "#F0E4DF",
                 backgroundColor: "#FDF8F5",
@@ -167,6 +168,7 @@ export default function WriteLetterDialog({
                 fontFamily: "Georgia, serif",
                 fontStyle: "italic",
                 lineHeight: "1.8",
+                fontSize: 16,
               }}
             />
           </div>
@@ -206,11 +208,12 @@ export default function WriteLetterDialog({
               onChange={(e) => setSendAt(e.target.value)}
               min={toDatetimeLocal(new Date())}
               required
-              className="w-full px-3 py-2 rounded-xl border text-sm outline-none focus:ring-2 transition-all"
+              className="w-full px-3 py-2 rounded-xl border outline-none focus:ring-2 transition-all"
               style={{
                 borderColor: "#F0E4DF",
                 backgroundColor: "#FDF8F5",
                 color: "#3A2832",
+                fontSize: 16,
               }}
             />
           </div>
