@@ -1,94 +1,125 @@
 "use client"
-
-import { useState, useEffect, useRef } from "react"
-
-const WHEEL_COLORS = [
-  "#F7D6DF",
-  "#D8EDE5",
-  "#EDE8F5",
-  "#FFF0C0",
-  "#C8D8E8",
-  "#F5D0D0",
-]
+import { useState } from 'react'
+import type { DateIdea } from '@/lib/date-ideas'
 
 interface SpinWheelProps {
-  segments: number
+  onSpinEnd: (idea: DateIdea) => void
+  ideas: DateIdea[]
   isSpinning: boolean
-  onSpin: () => void
+  setIsSpinning: (v: boolean) => void
 }
 
-export default function SpinWheel({ segments, isSpinning, onSpin }: SpinWheelProps) {
+const SEGMENTS = [
+  '#F7D6DF', '#D8EDE5', '#EDE8F5',
+  '#FFF0C0', '#F5D0D0', '#C8D8E8',
+  '#F0D8F0', '#D8EDE5',
+]
+
+export function SpinWheel({ onSpinEnd, ideas, isSpinning, setIsSpinning }: SpinWheelProps) {
   const [rotation, setRotation] = useState(0)
-  const prevSpinning = useRef(false)
 
-  useEffect(() => {
-    if (prevSpinning.current && !isSpinning) {
-      // Spin just ended
-    }
-    prevSpinning.current = isSpinning
-  }, [isSpinning])
+  const size = 240
+  const cx = size / 2
+  const count = SEGMENTS.length
 
-  function handleClick() {
-    if (isSpinning) return
-    const extra = 720 + Math.random() * 360
-    setRotation((r) => r + extra)
-    onSpin()
+  const slicePath = (index: number, total: number) => {
+    const angle = (2 * Math.PI) / total
+    const start = index * angle - Math.PI / 2
+    const end = start + angle
+    const r = size / 2 - 4
+    const x1 = cx + r * Math.cos(start)
+    const y1 = cx + r * Math.sin(start)
+    const x2 = cx + r * Math.cos(end)
+    const y2 = cx + r * Math.sin(end)
+    return `M ${cx} ${cx} L ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2} Z`
   }
 
-  const effectiveSegments = Math.max(segments, 6)
-  const sliceAngle = 360 / effectiveSegments
+  const spin = () => {
+    if (isSpinning || ideas.length === 0) return
+    setIsSpinning(true)
+    const extra = 1440 + Math.random() * 360
+    setRotation(prev => prev + extra)
+    setTimeout(() => {
+      const picked = ideas[Math.floor(Math.random() * ideas.length)]
+      onSpinEnd(picked)
+      setIsSpinning(false)
+    }, 1400)
+  }
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="relative">
-        {/* Fixed pointer */}
-        <div
-          className="absolute left-1/2 -translate-x-1/2 z-10"
-          style={{ top: "-10px" }}
-        >
-          <div
-            className="w-0 h-0"
-            style={{
-              borderLeft: "8px solid transparent",
-              borderRight: "8px solid transparent",
-              borderTop: "16px solid #C0607A",
-            }}
-          />
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+      {/* Pointer */}
+      <div style={{
+        width: 0, height: 0,
+        borderLeft: '10px solid transparent',
+        borderRight: '10px solid transparent',
+        borderTop: '20px solid #C0607A',
+        filter: 'drop-shadow(0 2px 4px rgba(192,96,122,0.4))',
+        zIndex: 2,
+        marginBottom: -2,
+      }} />
 
-        {/* Wheel */}
-        <div
-          className="w-64 h-64 rounded-full shadow-lg"
-          style={{
-            background: `conic-gradient(${WHEEL_COLORS.slice(0, effectiveSegments)
-              .map((color, i) => `${color} ${(i / effectiveSegments) * 100}% ${((i + 1) / effectiveSegments) * 100}%`)
-              .join(", ")})`,
-            transition: "transform 1.2s cubic-bezier(0.17, 0.67, 0.35, 0.97)",
-            transform: `rotate(${rotation}deg)`,
-          }}
-        />
-
-        {/* Center circle — outside the rotating div so it stays still */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div
-            className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold shadow-md"
-            style={{ backgroundColor: "#FFFFFF", color: "#C0607A" }}
-          >
-            🎯
-          </div>
-        </div>
+      {/* Wheel */}
+      <div style={{
+        width: size, height: size,
+        borderRadius: '50%',
+        position: 'relative',
+        transform: `rotate(${rotation}deg)`,
+        transition: isSpinning
+          ? 'transform 1.4s cubic-bezier(0.17,0.67,0.12,1)'
+          : 'none',
+        boxShadow: '0 8px 32px rgba(232,160,176,0.3)',
+      }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          {SEGMENTS.map((color, i) => (
+            <path
+              key={i}
+              d={slicePath(i, count)}
+              fill={color}
+              stroke="white"
+              strokeWidth="2"
+            />
+          ))}
+          <circle cx={cx} cy={cx} r={28} fill="white" />
+          <text
+            x={cx} y={cx + 8}
+            textAnchor="middle"
+            fontSize="22"
+            style={{ userSelect: 'none' }}
+          >🎡</text>
+        </svg>
       </div>
 
+      {/* Spin button */}
       <button
-        onClick={handleClick}
+        onClick={spin}
         disabled={isSpinning}
-        className="px-8 py-3 rounded-full text-sm font-semibold shadow-md transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
         style={{
-          backgroundColor: isSpinning ? "#C0909C" : "#E8A0B0",
-          color: "#FFFFFF",
+          marginTop: 24,
+          padding: '14px 40px',
+          borderRadius: 50,
+          background: isSpinning
+            ? '#E5E7EB'
+            : 'linear-gradient(135deg, #E8A0B0, #C0607A)',
+          color: isSpinning ? '#9CA3AF' : 'white',
+          border: 'none',
+          fontSize: 16,
+          fontWeight: 500,
+          cursor: isSpinning ? 'not-allowed' : 'pointer',
+          boxShadow: isSpinning ? 'none' : '0 4px 20px rgba(192,96,122,0.35)',
+          transition: 'all 0.3s',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
         }}
       >
-        {isSpinning ? "Đang quay..." : "🎰 Quay vòng!"}
+        <span style={{
+          display: 'inline-block',
+          animation: isSpinning ? 'spin 0.8s linear infinite' : 'none',
+        }}>
+          {isSpinning ? '⟳' : '🎲'}
+        </span>
+        {isSpinning ? 'Đang quay...' : 'Quay vòng!'}
       </button>
     </div>
   )

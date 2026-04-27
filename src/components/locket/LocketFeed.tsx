@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
-import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
 import type { LocketPhoto } from "@/types"
 import PhotoGrid from "./PhotoGrid"
@@ -15,8 +14,6 @@ interface LocketFeedProps {
 
 export default function LocketFeed({ initialPhotos, coupleId, currentUserId }: LocketFeedProps) {
   const [photos, setPhotos] = useState<LocketPhoto[]>(initialPhotos)
-  const [selectedPhoto, setSelectedPhoto] = useState<LocketPhoto | null>(null)
-
   const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
@@ -27,7 +24,6 @@ export default function LocketFeed({ initialPhotos, coupleId, currentUserId }: L
         { event: "INSERT", schema: "public", table: "locket_photos", filter: `couple_id=eq.${coupleId}` },
         (payload) => {
           const incoming = payload.new as LocketPhoto
-          // deduplicate: own uploads already added via onUploaded optimistic
           setPhotos((prev) => {
             if (prev.some((p) => p.id === incoming.id)) return prev
             return [incoming, ...prev]
@@ -39,11 +35,17 @@ export default function LocketFeed({ initialPhotos, coupleId, currentUserId }: L
     return () => { supabase.removeChannel(channel) }
   }, [coupleId, supabase])
 
-  function handleReaction(photoId: string, reaction: string) {
-    setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, reaction } : p))
-    if (selectedPhoto?.id === photoId) {
-      setSelectedPhoto((p) => p ? { ...p, reaction } : p)
-    }
+  async function handleReact(photoId: string, emoji: string) {
+    setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, reaction: emoji } : p))
+    await supabase
+      .from("locket_photos")
+      .update({ reaction: emoji })
+      .eq("id", photoId)
+  }
+
+  async function handleDelete(photoId: string) {
+    await supabase.from("locket_photos").delete().eq("id", photoId)
+    setPhotos((prev) => prev.filter((p) => p.id !== photoId))
   }
 
   return (
@@ -69,105 +71,12 @@ export default function LocketFeed({ initialPhotos, coupleId, currentUserId }: L
         <PhotoGrid
           photos={photos}
           currentUserId={currentUserId}
-          onSelectPhoto={setSelectedPhoto}
+          onDelete={handleDelete}
+          onReact={handleReact}
         />
       )}
 
       <UploadButton coupleId={coupleId} />
-
-      {selectedPhoto && (
-        <div
-          style={{
-            position: "fixed", inset: 0, zIndex: 100,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            backgroundColor: "rgba(0,0,0,0.6)", padding: 16,
-          }}
-          onClick={() => setSelectedPhoto(null)}
-        >
-          <div
-            style={{ width: "100%", maxWidth: 360, borderRadius: 20, overflow: "hidden", backgroundColor: "white" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ position: "relative", width: "100%", aspectRatio: "1/1" }}>
-              <Image
-                src={selectedPhoto.photo_url}
-                alt={selectedPhoto.caption ?? ""}
-                fill
-                style={{ objectFit: "cover" }}
-                unoptimized
-              />
-            </div>
-            <div style={{ padding: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                <div>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "#3A2832", margin: "0 0 3px" }}>
-                    {selectedPhoto.caption || "Không có chú thích"}
-                  </p>
-                  <p style={{ fontSize: 12, color: "#8A6A72", margin: 0 }}>
-                    {selectedPhoto.sender_id === currentUserId ? "Bạn" : "Người ấy"} •{" "}
-                    {new Date(selectedPhoto.taken_at).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "numeric" })}
-                  </p>
-                </div>
-                {selectedPhoto.reaction && (
-                  <span style={{ fontSize: 24 }}>{selectedPhoto.reaction}</span>
-                )}
-              </div>
-              <ReactionPicker
-                photoId={selectedPhoto.id}
-                currentReaction={selectedPhoto.reaction}
-                onReact={handleReaction}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function ReactionPicker({
-  photoId,
-  currentReaction,
-  onReact,
-}: {
-  photoId: string
-  currentReaction: string | null
-  onReact: (photoId: string, reaction: string) => void
-}) {
-  const REACTIONS = ["❤️", "😍", "🥹", "😘", "🤗"]
-  const [reacted, setReacted] = useState<string | null>(currentReaction)
-  const [isLoading, setIsLoading] = useState(false)
-
-  async function handleReact(emoji: string) {
-    if (isLoading) return
-    const next = reacted === emoji ? null : emoji
-    setReacted(next)
-    if (next) onReact(photoId, next)
-    setIsLoading(true)
-    await fetch("/api/locket", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ photo_id: photoId, reaction: next }),
-    })
-    setIsLoading(false)
-  }
-
-  return (
-    <div style={{ display: "flex", gap: 6, justifyContent: "space-between" }}>
-      {REACTIONS.map((r) => (
-        <button
-          key={r}
-          onClick={() => handleReact(r)}
-          style={{
-            flex: 1, height: 44, borderRadius: 12, border: "none", fontSize: 22,
-            cursor: "pointer", transition: "transform 0.15s",
-            backgroundColor: reacted === r ? "#F5EDE8" : "#FDF8F5",
-            transform: reacted === r ? "scale(1.2)" : "scale(1)",
-          }}
-        >
-          {r}
-        </button>
-      ))}
     </div>
   )
 }
