@@ -39,10 +39,6 @@ export default function LocketFeed({ initialPhotos, coupleId, currentUserId }: L
     return () => { supabase.removeChannel(channel) }
   }, [coupleId, supabase])
 
-  function handleUploaded(photo: LocketPhoto) {
-    setPhotos((prev) => [photo, ...prev])
-  }
-
   function handleReaction(photoId: string, reaction: string) {
     setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, reaction } : p))
     if (selectedPhoto?.id === photoId) {
@@ -77,7 +73,7 @@ export default function LocketFeed({ initialPhotos, coupleId, currentUserId }: L
         />
       )}
 
-      <UploadButton coupleId={coupleId} onUploaded={handleUploaded} />
+      <UploadButton coupleId={coupleId} />
 
       {selectedPhoto && (
         <div

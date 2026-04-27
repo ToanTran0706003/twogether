@@ -1,15 +1,13 @@
 "use client"
 
 import { useRef, useState } from "react"
-import type { LocketPhoto } from "@/types"
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 
 interface UploadButtonProps {
   coupleId: string
-  onUploaded?: (photo: LocketPhoto) => void
 }
 
-export default function UploadButton({ coupleId, onUploaded }: UploadButtonProps) {
+export default function UploadButton({ coupleId }: UploadButtonProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [showCaption, setShowCaption] = useState(false)
@@ -52,8 +50,7 @@ export default function UploadButton({ coupleId, onUploaded }: UploadButtonProps
         body: JSON.stringify({ photo_url: publicUrl, caption: caption.trim() || null, couple_id: coupleId }),
       })
       if (!res.ok) throw new Error("Failed to save photo")
-      const saved: LocketPhoto = await res.json()
-      onUploaded?.(saved)
+      // Realtime subscription in LocketFeed handles adding the photo
     } catch (err) {
       console.error("Upload failed:", err)
       alert("Tải ảnh thất bại. Vui lòng thử lại.")
