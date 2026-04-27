@@ -109,14 +109,24 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "invite_code is required" }, { status: 400 })
   }
 
-  const { data: couple, error } = await supabase
+  const normalizedCode = invite_code.trim().toUpperCase()
+  console.log("[PATCH /api/couple] Searching for invite_code:", normalizedCode)
+
+  // Use ilike for case-insensitive match, maybeSingle to avoid throwing on no-match
+  const { data: couple, error: findError } = await supabase
     .from("couples")
     .select("*")
-    .eq("invite_code", invite_code.toUpperCase())
+    .ilike("invite_code", normalizedCode)
     .is("user_b_id", null)
-    .single()
+    .maybeSingle()
 
-  if (error || !couple) {
+  console.log("[PATCH /api/couple] Found:", couple, "Error:", findError)
+
+  if (findError) {
+    return NextResponse.json({ error: findError.message }, { status: 500 })
+  }
+
+  if (!couple) {
     return NextResponse.json({ error: "Mã không hợp lệ hoặc đã được sử dụng" }, { status: 404 })
   }
 
