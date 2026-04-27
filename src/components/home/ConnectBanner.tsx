@@ -33,16 +33,25 @@ export function ConnectBanner({ userId }: { userId: string }) {
   useEffect(() => {
     if (!couple?.id) return
 
-    const channel = supabase
-      .channel(`couple-connect-${couple.id}`)
+    const supabaseClient = createClient()
+
+    const channel = supabaseClient
+      .channel(`couple-watch-${couple.id}`, {
+        config: { broadcast: { self: true } },
+      })
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "couples", filter: `id=eq.${couple.id}` },
-        (payload) => {
-          const updated = payload.new as CoupleRow
-          if (updated.user_b_id) {
-            setCouple(updated)
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "couples",
+          filter: `id=eq.${couple.id}`,
+        },
+        (payload: { new: CoupleRow }) => {
+          if (payload.new?.user_b_id && !couple.user_b_id) {
+            setCouple(payload.new)
             setCelebrated(true)
+            setShowSheet(false)
             setTimeout(() => {
               window.location.href = "/home"
             }, 2500)
@@ -51,9 +60,35 @@ export function ConnectBanner({ userId }: { userId: string }) {
       )
       .subscribe()
 
-    return () => { void supabase.removeChannel(channel) }
+    return () => { void supabaseClient.removeChannel(channel) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [couple?.id])
+
+  // Polling fallback: check every 5s in case Realtime is not enabled
+  useEffect(() => {
+    if (!couple?.id || couple?.user_b_id) return
+
+    const supabaseClient = createClient()
+    const interval = setInterval(async () => {
+      const { data } = await supabaseClient
+        .from("couples")
+        .select("*")
+        .eq("id", couple.id)
+        .single()
+      const row = data as CoupleRow | null
+      if (row?.user_b_id && !couple.user_b_id) {
+        setCouple(row)
+        setCelebrated(true)
+        clearInterval(interval)
+        setTimeout(() => {
+          window.location.href = "/home"
+        }, 2500)
+      }
+    }, 5000)
+
+    return () => clearInterval(interval)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [couple?.id, couple?.user_b_id])
 
   const fetchCouple = async () => {
     const { data } = await supabase
@@ -174,13 +209,25 @@ export function ConnectBanner({ userId }: { userId: string }) {
             {tab === "create" ? (
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 12, color: "#7A5A65", marginBottom: 12 }}>Gửi mã này cho người yêu</div>
-                <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 6, color: "#C0607A", background: "#FBEAF0", borderRadius: 12, padding: "16px 24px", marginBottom: 16, fontFamily: "monospace" }}>
+                <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 6, color: "#C0607A", background: "#FBEAF0", borderRadius: 12, padding: "16px 24px", marginBottom: 12, fontFamily: "monospace" }}>
                   {working ? "..." : myCode || "..."}
                 </div>
                 <button onClick={() => void copyCode()}
-                  style={{ width: "100%", background: "#C0607A", color: "white", border: "none", borderRadius: 12, padding: "13px 0", fontSize: 14, fontWeight: 500, cursor: "pointer" }}>
+                  style={{ width: "100%", background: "#C0607A", color: "white", border: "none", borderRadius: 12, padding: "13px 0", fontSize: 14, fontWeight: 500, cursor: "pointer", marginBottom: 12 }}>
                   Copy mã mời
                 </button>
+                {myCode && (
+                  <>
+                    <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, textAlign: "left" }}>
+                      <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid #F59E0B", borderTopColor: "transparent", animation: "spin 1s linear infinite", flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "#92400E" }}>Đang chờ người yêu...</div>
+                        <div style={{ fontSize: 11, color: "#B45309", marginTop: 2 }}>Tự động cập nhật khi họ nhập mã</div>
+                      </div>
+                    </div>
+                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                  </>
+                )}
               </div>
             ) : (
               <div>
