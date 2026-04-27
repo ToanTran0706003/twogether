@@ -1,4 +1,4 @@
-import { BottomNav } from '@/components/shared/BottomNav'
+import BottomNav from "@/components/shared/BottomNav"
 
 export default function AppLayout({
   children,
@@ -7,7 +7,7 @@ export default function AppLayout({
 }) {
   return (
     <>
-      <main className="page scroll-y">
+      <main className="page">
         {children}
       </main>
       <BottomNav />

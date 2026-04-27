@@ -84,14 +84,20 @@ export default function UploadButton({ coupleId, onUploaded }: UploadButtonProps
 
       {showCaption && (
         <div
-          className="overlay"
+          style={{
+            position: "fixed", inset: 0, zIndex: 100,
+            backgroundColor: "rgba(58,40,50,0.5)",
+            display: "flex", alignItems: "flex-end",
+          }}
           onClick={() => { setShowCaption(false); setPendingBlob(null) }}
         >
           <div
-            className="bottom-sheet animate-slideUp"
+            style={{
+              background: "white", borderRadius: "20px 20px 0 0",
+              padding: "20px 20px calc(36px + env(safe-area-inset-bottom, 0px))", width: "100%",
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bottom-sheet-handle" />
             <p style={{ fontSize: 15, fontWeight: 600, color: "#3A2832", marginBottom: 12 }}>
               Thêm chú thích (tuỳ chọn)
             </p>
@@ -102,8 +108,8 @@ export default function UploadButton({ coupleId, onUploaded }: UploadButtonProps
               placeholder="Viết gì đó cho người ấy..."
               maxLength={100}
               style={{
-                width: "100%", height: 48, padding: "0 14px",
-                fontSize: 16, color: "#3A2832",
+                width: "100%", height: 48, padding: "0 14px", borderRadius: 12,
+                border: "1.5px solid rgba(58,40,50,0.12)", fontSize: 16, color: "#3A2832",
                 background: "#FDF8F5", outline: "none", boxSizing: "border-box",
               }}
               onKeyDown={(e) => e.key === "Enter" && handleUpload()}
@@ -114,7 +120,7 @@ export default function UploadButton({ coupleId, onUploaded }: UploadButtonProps
                 style={{
                   flex: 1, height: 46, borderRadius: 100,
                   border: "1.5px solid #E0C8CC", background: "white",
-                  color: "#7A5A65", fontWeight: 600, fontSize: 14,
+                  color: "#7A5A65", fontWeight: 600, fontSize: 14, cursor: "pointer",
                 }}
               >
                 Huỷ
@@ -124,7 +130,7 @@ export default function UploadButton({ coupleId, onUploaded }: UploadButtonProps
                 style={{
                   flex: 2, height: 46, borderRadius: 100, border: "none",
                   background: "#C0607A", color: "white", fontWeight: 600,
-                  fontSize: 14,
+                  fontSize: 14, cursor: "pointer",
                 }}
               >
                 Gửi ảnh ♡
