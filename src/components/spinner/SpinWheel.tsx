@@ -58,7 +58,7 @@ export default function SpinWheel({ segments, isSpinning, onSpin }: SpinWheelPro
 
         {/* Wheel */}
         <div
-          className="w-64 h-64 rounded-full shadow-lg overflow-hidden"
+          className="w-64 h-64 rounded-full shadow-lg"
           style={{
             background: `conic-gradient(${WHEEL_COLORS.slice(0, effectiveSegments)
               .map((color, i) => `${color} ${(i / effectiveSegments) * 100}% ${((i + 1) / effectiveSegments) * 100}%`)
@@ -66,17 +66,15 @@ export default function SpinWheel({ segments, isSpinning, onSpin }: SpinWheelPro
             transition: "transform 1.2s cubic-bezier(0.17, 0.67, 0.35, 0.97)",
             transform: `rotate(${rotation}deg)`,
           }}
-        >
-          {/* Center circle */}
+        />
+
+        {/* Center circle — outside the rotating div so it stays still */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div
-            className="absolute inset-0 flex items-center justify-center"
+            className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold shadow-md"
+            style={{ backgroundColor: "#FFFFFF", color: "#C0607A" }}
           >
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold shadow-md"
-              style={{ backgroundColor: "#FFFFFF", color: "#C0607A" }}
-            >
-              🎯
-            </div>
+            🎯
           </div>
         </div>
       </div>

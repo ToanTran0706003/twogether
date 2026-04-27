@@ -45,29 +45,11 @@ export default function AddMemoryDialog({
     setError("")
 
     try {
-      // Convert to webp via canvas
-      const bitmap = await createImageBitmap(file)
-      const canvas = document.createElement("canvas")
-      canvas.width = bitmap.width
-      canvas.height = bitmap.height
-      const ctx = canvas.getContext("2d")!
-      ctx.drawImage(bitmap, 0, 0)
-
-      const webpBlob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(
-          (blob) => {
-            if (blob) resolve(blob)
-            else reject(new Error("Canvas toBlob failed"))
-          },
-          "image/webp",
-          0.85
-        )
-      })
-
+      const resized = await resizeImage(file, 1200)
       const path = `${coupleId}/memories/${Date.now()}.webp`
       const { error: uploadError } = await supabase.storage
         .from("photos")
-        .upload(path, webpBlob, { contentType: "image/webp", upsert: false })
+        .upload(path, resized, { contentType: "image/webp", upsert: false })
 
       if (uploadError) throw uploadError
 
@@ -79,6 +61,27 @@ export default function AddMemoryDialog({
     } finally {
       setIsUploading(false)
     }
+  }
+
+  function resizeImage(file: File, maxSize: number): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image()
+      img.onload = () => {
+        const ratio = Math.min(maxSize / img.width, maxSize / img.height, 1)
+        const canvas = document.createElement("canvas")
+        canvas.width = Math.round(img.width * ratio)
+        canvas.height = Math.round(img.height * ratio)
+        const ctx = canvas.getContext("2d")!
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        canvas.toBlob(
+          (blob) => (blob ? resolve(blob) : reject(new Error("toBlob failed"))),
+          "image/webp",
+          0.85
+        )
+      }
+      img.onerror = () => reject(new Error("Image load failed"))
+      img.src = URL.createObjectURL(file)
+    })
   }
 
   async function handleSubmit(e: React.FormEvent) {

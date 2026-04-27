@@ -14,9 +14,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "title and couple_id are required" }, { status: 400 })
   }
 
+  const insertData: Record<string, unknown> = { couple_id, created_by: user.id, title }
+  if (category !== undefined && category !== null) insertData.category = category
+
   const { data, error } = await supabase
     .from("quest_items")
-    .insert({ couple_id, created_by: user.id, title, category: category ?? null })
+    .insert(insertData)
     .select()
     .single()
 

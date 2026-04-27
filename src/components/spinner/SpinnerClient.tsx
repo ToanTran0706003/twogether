@@ -39,7 +39,6 @@ export default function SpinnerClient() {
   const [durationFilter, setDurationFilter] = useState<string | null>(null)
   const [result, setResult] = useState<DateIdea | null>(null)
   const [isSpinning, setIsSpinning] = useState(false)
-  const [spinKey, setSpinKey] = useState(0)
   const [history, setHistory] = useState<DateIdea[]>([])
   const [toast, setToast] = useState<string | null>(null)
 
@@ -65,7 +64,6 @@ export default function SpinnerClient() {
     }
     setIsSpinning(true)
     setResult(null)
-    setSpinKey((k) => k + 1)
 
     setTimeout(() => {
       const picked = pickRandomIdea(filteredIdeas)
@@ -119,7 +117,6 @@ export default function SpinnerClient() {
       couple_id: couple.id,
       created_by: user.id,
       title: idea.title,
-      category: "hẹn hò",
     })
   }
 
@@ -136,7 +133,6 @@ export default function SpinnerClient() {
       )}
 
       <SpinWheel
-        key={spinKey}
         isSpinning={isSpinning}
         segments={filteredIdeas.length > 0 ? filteredIdeas.length : 6}
         onSpin={handleSpin}
