@@ -63,9 +63,7 @@ export default function SpinWheel({ segments, isSpinning, onSpin }: SpinWheelPro
             background: `conic-gradient(${WHEEL_COLORS.slice(0, effectiveSegments)
               .map((color, i) => `${color} ${(i / effectiveSegments) * 100}% ${((i + 1) / effectiveSegments) * 100}%`)
               .join(", ")})`,
-            transition: isSpinning
-              ? "transform 1.2s cubic-bezier(0.17, 0.67, 0.35, 0.97)"
-              : "none",
+            transition: "transform 1.2s cubic-bezier(0.17, 0.67, 0.35, 0.97)",
             transform: `rotate(${rotation}deg)`,
           }}
         >
