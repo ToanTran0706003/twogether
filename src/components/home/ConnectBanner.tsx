@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
 interface CoupleRow {
@@ -20,12 +21,39 @@ export function ConnectBanner({ userId }: { userId: string }) {
   const [error, setError] = useState("")
   const [working, setWorking] = useState(false)
   const [celebrated, setCelebrated] = useState(false)
+  const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
     void fetchCouple()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Realtime: creator sees partner join in real-time
+  useEffect(() => {
+    if (!couple?.id) return
+
+    const channel = supabase
+      .channel(`couple-connect-${couple.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "couples", filter: `id=eq.${couple.id}` },
+        (payload) => {
+          const updated = payload.new as CoupleRow
+          if (updated.user_b_id) {
+            setCouple(updated)
+            setCelebrated(true)
+            setTimeout(() => {
+              window.location.href = "/home"
+            }, 2500)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => { void supabase.removeChannel(channel) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [couple?.id])
 
   const fetchCouple = async () => {
     const { data } = await supabase
@@ -64,14 +92,15 @@ export function ConnectBanner({ userId }: { userId: string }) {
       setWorking(false)
       return
     }
-    setCouple(data.couple ?? null)
+    // Success: close sheet, update couple, show celebration
     setShowSheet(false)
+    setCouple(data.couple ?? null)
     setCelebrated(true)
-    setTimeout(() => {
-      setCelebrated(false)
-      window.location.reload()
-    }, 3000)
     setWorking(false)
+    setTimeout(() => {
+      router.refresh()
+      window.location.href = "/home"
+    }, 2500)
   }
 
   const copyCode = async () => {
@@ -79,10 +108,13 @@ export function ConnectBanner({ userId }: { userId: string }) {
   }
 
   if (loading) return null
-  if (couple?.user_b_id) return null
+
+  // Celebration overlay renders even after user_b_id is set
+  if (couple?.user_b_id && !celebrated) return null
 
   return (
     <>
+      {/* Celebration overlay */}
       {celebrated && (
         <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)" }}>
           <div style={{ background: "white", borderRadius: 24, padding: "32px 40px", textAlign: "center", maxWidth: 300, margin: "0 16px" }}>
@@ -93,30 +125,34 @@ export function ConnectBanner({ userId }: { userId: string }) {
         </div>
       )}
 
-      <div style={{ margin: "0 16px 12px", background: "linear-gradient(135deg,#FBEAF0,#F7F0FB)", border: "1px solid #F4C0D1", borderRadius: 16, padding: "14px 16px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-          <span style={{ fontSize: 20 }}>💕</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 500, color: "#C0607A" }}>Kết nối với người yêu</div>
-            <div style={{ fontSize: 11, color: "#7A5A65", marginTop: 2 }}>Chia sẻ mã mời để bắt đầu hành trình cùng nhau ♡</div>
+      {/* Banner — hidden during/after celebration */}
+      {!celebrated && (
+        <div style={{ margin: "0 16px 12px", background: "linear-gradient(135deg,#FBEAF0,#F7F0FB)", border: "1px solid #F4C0D1", borderRadius: 16, padding: "14px 16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <span style={{ fontSize: 20 }}>💕</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: "#C0607A" }}>Kết nối với người yêu</div>
+              <div style={{ fontSize: 11, color: "#7A5A65", marginTop: 2 }}>Chia sẻ mã mời để bắt đầu hành trình cùng nhau ♡</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => { setTab("create"); setShowSheet(true); if (!myCode) void createCouple() }}
+              style={{ flex: 1, background: "#C0607A", color: "white", border: "none", borderRadius: 10, padding: "9px 0", fontSize: 12, fontWeight: 500, cursor: "pointer" }}
+            >
+              Tạo mã mời
+            </button>
+            <button
+              onClick={() => { setTab("join"); setShowSheet(true) }}
+              style={{ flex: 1, background: "white", color: "#C0607A", border: "1px solid #F4C0D1", borderRadius: 10, padding: "9px 0", fontSize: 12, fontWeight: 500, cursor: "pointer" }}
+            >
+              Nhập mã
+            </button>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={() => { setTab("create"); setShowSheet(true); if (!myCode) void createCouple() }}
-            style={{ flex: 1, background: "#C0607A", color: "white", border: "none", borderRadius: 10, padding: "9px 0", fontSize: 12, fontWeight: 500, cursor: "pointer" }}
-          >
-            Tạo mã mời
-          </button>
-          <button
-            onClick={() => { setTab("join"); setShowSheet(true) }}
-            style={{ flex: 1, background: "white", color: "#C0607A", border: "1px solid #F4C0D1", borderRadius: 10, padding: "9px 0", fontSize: 12, fontWeight: 500, cursor: "pointer" }}
-          >
-            Nhập mã
-          </button>
-        </div>
-      </div>
+      )}
 
+      {/* Bottom Sheet */}
       {showSheet && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
           <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)" }} onClick={() => setShowSheet(false)} />
