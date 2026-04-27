@@ -91,7 +91,7 @@ export default function UploadButton({ coupleId, onUploaded }: UploadButtonProps
       {showCaption && (
         <div
           style={{
-            position: "fixed", inset: 0, zIndex: 50,
+            position: "fixed", inset: 0, zIndex: 100,
             backgroundColor: "rgba(58,40,50,0.5)",
             display: "flex", alignItems: "flex-end",
           }}
@@ -100,7 +100,7 @@ export default function UploadButton({ coupleId, onUploaded }: UploadButtonProps
           <div
             style={{
               background: "white", borderRadius: "20px 20px 0 0",
-              padding: "20px 20px 36px", width: "100%",
+              padding: "20px 20px calc(36px + env(safe-area-inset-bottom, 0px))", width: "100%",
             }}
             onClick={(e) => e.stopPropagation()}
           >

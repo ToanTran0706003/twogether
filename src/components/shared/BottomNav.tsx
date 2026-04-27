@@ -2,74 +2,63 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { Home, Image, Smile, Settings } from "lucide-react"
 
-const NAV_ITEMS = [
-  {
-    href: "/home", label: "Trang chủ",
-    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 11l9-8 9 8v10a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1V11z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/></svg>
-  },
-  {
-    href: "/locket", label: "Ảnh",
-    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.8"/><circle cx="9" cy="11" r="2" stroke="currentColor" strokeWidth="1.8"/><path d="M3 17l5-4 5 4 3-3 5 4" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/></svg>
-  },
-  {
-    href: "/mood", label: "Mood",
-    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8"/><path d="M9 15s1 1 3 1 3-1 3-1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/></svg>
-  },
-  {
-    href: "/settings", label: "Cài đặt",
-    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
-  },
+const tabs = [
+  { href: "/home", icon: Home, label: "Trang chủ" },
+  { href: "/locket", icon: Image, label: "Ảnh" },
+  { href: "/mood", icon: Smile, label: "Mood" },
+  { href: "/settings", icon: Settings, label: "Cài đặt" },
 ]
 
 export default function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <>
-      {/* Spacer so content is not hidden behind nav */}
-      <div style={{ height: "calc(64px + env(safe-area-inset-bottom))" }} />
-
-      <nav
-        style={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: "rgba(253,248,245,0.95)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          borderTop: "1px solid rgba(58,40,50,0.08)",
-          display: "flex",
-          justifyContent: "space-around",
-          alignItems: "flex-start",
-          paddingTop: 8,
-          paddingLeft: 8,
-          paddingRight: 8,
-          paddingBottom: "calc(18px + env(safe-area-inset-bottom))",
-          zIndex: 50,
-        }}
-      >
-        {NAV_ITEMS.map(({ href, label, icon }) => {
+    <nav style={{
+      position: "fixed",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      zIndex: 50,
+      background: "rgba(253,248,245,0.96)",
+      backdropFilter: "blur(12px)",
+      WebkitBackdropFilter: "blur(12px)",
+      borderTop: "0.5px solid #F4C0D1",
+      paddingBottom: "env(safe-area-inset-bottom, 0px)",
+    }}>
+      <div style={{
+        display: "flex",
+        maxWidth: 480,
+        margin: "0 auto",
+      }}>
+        {tabs.map(({ href, icon: Icon, label }) => {
           const active = pathname === href || pathname.startsWith(href + "/")
           return (
-            <Link
-              key={href}
-              href={href}
-              style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                fontSize: 10.5, fontWeight: active ? 600 : 500,
-                color: active ? "#C0607A" : "#B89BA3",
-                flex: 1, padding: "6px 0", textDecoration: "none",
-                minHeight: 44,
-              }}
-            >
-              <span style={{ width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center" }}>{icon}</span>
-              <span>{label}</span>
+            <Link key={href} href={href} style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 2,
+              padding: "10px 0",
+              minHeight: 56,
+              textDecoration: "none",
+              color: active ? "#C0607A" : "#B8909A",
+            }}>
+              <Icon size={22} strokeWidth={active ? 2.5 : 1.5} />
+              <span style={{
+                fontSize: 10,
+                fontWeight: active ? 600 : 400,
+                letterSpacing: 0.2,
+              }}>
+                {label}
+              </span>
             </Link>
           )
         })}
-      </nav>
-    </>
+      </div>
+    </nav>
   )
 }

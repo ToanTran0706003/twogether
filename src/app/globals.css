@@ -199,12 +199,13 @@
 
 /* FAB */
 .btn-fab {
-  position: absolute; right: 16px; bottom: 96px;
+  position: fixed; right: 16px;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   width: 56px; height: 56px; border-radius: 50%;
   background: var(--primary-dark); color: white;
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 8px 24px rgba(192,96,122,0.4);
-  border: none; cursor: pointer; z-index: 5;
+  border: none; cursor: pointer; z-index: 40;
 }
 
 /* Keyframes */
@@ -218,13 +219,33 @@
   100% { transform: translateY(-40px) rotate(15deg); opacity: 0; }
 }
 
-/* Mobile UX fixes */
-* {
-  -webkit-tap-highlight-color: transparent;
+/* iOS / mobile UX fixes */
+:root {
+  --nav-height: 64px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --nav-total: calc(var(--nav-height) + var(--safe-bottom));
 }
 
-html, body {
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+html {
+  height: -webkit-fill-available;
+}
+
+body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
   overscroll-behavior: none;
+  background: #FDF8F5;
+}
+
+/* Pages inside the app shell — cleared below bottom nav */
+.app-page {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  min-height: 100dvh;
 }
 
 img {

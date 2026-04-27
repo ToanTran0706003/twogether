@@ -82,7 +82,7 @@ export default function LocketFeed({ initialPhotos, coupleId, currentUserId }: L
       {selectedPhoto && (
         <div
           style={{
-            position: "fixed", inset: 0, zIndex: 50,
+            position: "fixed", inset: 0, zIndex: 100,
             display: "flex", alignItems: "center", justifyContent: "center",
             backgroundColor: "rgba(0,0,0,0.6)", padding: 16,
           }}

@@ -6,8 +6,18 @@ export default function AppLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col min-h-screen" style={{ backgroundColor: "#FDF8F5" }}>
-      {children}
+    <div style={{
+      minHeight: "100dvh",
+      background: "#FDF8F5",
+      position: "relative",
+    }}>
+      <main style={{
+        maxWidth: 480,
+        margin: "0 auto",
+        paddingBottom: "calc(80px + env(safe-area-inset-bottom, 16px))",
+      }}>
+        {children}
+      </main>
       <BottomNav />
     </div>
   )

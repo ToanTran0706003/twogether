@@ -58,7 +58,7 @@ export default function CompleteDialog({
   return (
     <div
       style={{
-        position: "fixed", inset: 0, zIndex: 50,
+        position: "fixed", inset: 0, zIndex: 100,
         backgroundColor: "rgba(58,40,50,0.5)",
         display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
       }}
