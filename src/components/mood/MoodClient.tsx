@@ -10,6 +10,7 @@ interface MoodClientProps {
   entries: MoodEntry[]
   dates: string[]
   userId: string
+  coupleId: string
   partnerId: string | null
   myName: string
   partnerName: string
@@ -17,10 +18,22 @@ interface MoodClientProps {
   partnerAvatar?: string | null
 }
 
+const MOOD_OPTIONS = [
+  { emoji: "🥰", label: "Yêu đời", color: "#F7D6DF" },
+  { emoji: "😊", label: "Vui vẻ", color: "#D8EDE5" },
+  { emoji: "😌", label: "Bình yên", color: "#EDE8F5" },
+  { emoji: "😴", label: "Mệt mỏi", color: "#E8E8E0" },
+  { emoji: "🌧", label: "Buồn", color: "#C8D8E8" },
+  { emoji: "😤", label: "Bực bội", color: "#F5D0D0" },
+  { emoji: "🤩", label: "Hứng khởi", color: "#FFF0C0" },
+  { emoji: "🫂", label: "Cần ôm", color: "#F0D8F0" },
+]
+
 export default function MoodClient({
   entries,
   dates,
   userId,
+  coupleId,
   partnerId,
   myName,
   partnerName,
@@ -33,17 +46,57 @@ export default function MoodClient({
 
   const today = new Date().toISOString().split("T")[0]
   const todayEntry = moodEntries.find((e) => e.entry_date === today && e.user_id === userId)
+  const partnerTodayEntry = partnerId
+    ? moodEntries.find((e) => e.entry_date === today && e.user_id === partnerId)
+    : null
+  const partnerMood = partnerTodayEntry
+    ? MOOD_OPTIONS.find((m) => m.emoji === partnerTodayEntry.emoji)
+    : null
+
+  // Streak: count consecutive days both users have entries
+  const streak = useMemo(() => {
+    if (!partnerId) return 0
+    let count = 0
+    const sortedDates = [...dates].sort((a, b) => (a < b ? 1 : -1))
+    for (const date of sortedDates) {
+      const hasMe = moodEntries.some((e) => e.entry_date === date && e.user_id === userId)
+      const hasPartner = moodEntries.some((e) => e.entry_date === date && e.user_id === partnerId)
+      if (hasMe && hasPartner) {
+        count++
+      } else {
+        break
+      }
+    }
+    return count
+  }, [moodEntries, dates, userId, partnerId])
+
+  // Stats: most common mood this week (combined)
+  const topMood = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const entry of moodEntries) {
+      counts[entry.emoji] = (counts[entry.emoji] ?? 0) + 1
+    }
+    let best: string | null = null
+    let max = 0
+    for (const [emoji, count] of Object.entries(counts)) {
+      if (count > max) {
+        max = count
+        best = emoji
+      }
+    }
+    return best
+  }, [moodEntries])
 
   useEffect(() => {
     const channel = supabase
-      .channel(`moodboard-${userId}`)
+      .channel(`mood-${coupleId}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "mood_entries",
-          filter: `user_id=eq.${userId},user_id=eq.${partnerId}`,
+          filter: `couple_id=eq.${coupleId}`,
         },
         (payload) => {
           if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
@@ -62,16 +115,14 @@ export default function MoodClient({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [userId, partnerId, supabase])
+  }, [coupleId, supabase])
 
   async function handleMoodSelect(emoji: string, color: string) {
-    const todayDate = new Date().toISOString().split("T")[0]
-
     const { data } = await supabase
       .from("mood_entries")
       .upsert(
-        { couple_id: entries[0]?.couple_id, user_id: userId, emoji, color, entry_date: todayDate },
-        { onConflict: "user_id,entry_date" }
+        { couple_id: coupleId, user_id: userId, emoji, color, entry_date: today },
+        { onConflict: "couple_id,user_id,entry_date" }
       )
       .select()
       .single()
@@ -79,7 +130,7 @@ export default function MoodClient({
     if (data) {
       setMoodEntries((prev) => {
         const filtered = prev.filter(
-          (e) => !(e.entry_date === todayDate && e.user_id === userId)
+          (e) => !(e.entry_date === today && e.user_id === userId)
         )
         return [data, ...filtered]
       })
@@ -88,19 +139,89 @@ export default function MoodClient({
   }
 
   return (
-    <div className="px-4 space-y-6">
-      <div
-        className="rounded-2xl p-4 border shadow-sm"
-        style={{ backgroundColor: "#FFFFFF", borderColor: "#F0E4DF" }}
-      >
-        <MoodPicker
-          todayEntry={todayEntry ?? null}
-          onSelect={handleMoodSelect}
-          showPicker={showPicker}
-          setShowPicker={setShowPicker}
-        />
+    <div className="px-4 space-y-4">
+      {/* Streak + Stats row */}
+      {(streak > 0 || topMood) && (
+        <div className="flex gap-3">
+          {streak > 0 && (
+            <div
+              className="flex-1 rounded-2xl p-3 border shadow-sm flex items-center gap-2"
+              style={{ backgroundColor: "#FFFFFF", borderColor: "#F0E4DF" }}
+            >
+              <span className="text-xl">🔥</span>
+              <div>
+                <p className="text-xs font-semibold" style={{ color: "#C0607A" }}>
+                  {streak} ngày streak
+                </p>
+                <p className="text-[10px]" style={{ color: "#8A6A72" }}>
+                  Cùng cập nhật liên tục
+                </p>
+              </div>
+            </div>
+          )}
+          {topMood && (
+            <div
+              className="flex-1 rounded-2xl p-3 border shadow-sm flex items-center gap-2"
+              style={{ backgroundColor: "#FFFFFF", borderColor: "#F0E4DF" }}
+            >
+              <span className="text-xl">{topMood}</span>
+              <div>
+                <p className="text-xs font-semibold" style={{ color: "#C0607A" }}>
+                  Mood nổi bật
+                </p>
+                <p className="text-[10px]" style={{ color: "#8A6A72" }}>
+                  Tuần này hay {topMood} nhất
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* My mood + Partner mood */}
+      <div className="flex gap-3">
+        <div
+          className="flex-1 rounded-2xl p-4 border shadow-sm"
+          style={{ backgroundColor: "#FFFFFF", borderColor: "#F0E4DF" }}
+        >
+          <MoodPicker
+            todayEntry={todayEntry ?? null}
+            onSelect={handleMoodSelect}
+            showPicker={showPicker}
+            setShowPicker={setShowPicker}
+          />
+        </div>
+
+        {partnerId && (
+          <div
+            className="flex-1 rounded-2xl p-4 border shadow-sm flex flex-col items-center justify-center gap-2"
+            style={{ backgroundColor: "#FFFFFF", borderColor: "#F0E4DF" }}
+          >
+            <h2 className="text-xs font-semibold self-start" style={{ color: "#8A6A72" }}>
+              {partnerName}
+            </h2>
+            {partnerMood ? (
+              <>
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center text-3xl shadow-sm"
+                  style={{ backgroundColor: partnerMood.color }}
+                >
+                  {partnerMood.emoji}
+                </div>
+                <p className="text-xs font-medium" style={{ color: "#3A2832" }}>
+                  {partnerMood.label}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-center py-2" style={{ color: "#C0909C" }}>
+                Chưa cập nhật 🌙
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
+      {/* Weekly grid */}
       <div
         className="rounded-2xl p-4 border shadow-sm"
         style={{ backgroundColor: "#FFFFFF", borderColor: "#F0E4DF" }}

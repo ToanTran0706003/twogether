@@ -77,6 +77,7 @@ export default async function MoodPage() {
         entries={moodData.entries}
         dates={moodData.dates}
         userId={user.id}
+        coupleId={couple.id}
         partnerId={moodData.partnerProfile?.id ?? null}
         myName={moodData.myProfile?.name ?? "Mình"}
         partnerName={moodData.partnerProfile?.name ?? "Người ấy"}
