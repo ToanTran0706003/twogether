@@ -48,14 +48,15 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  // If user already has a couple, return it instead of erroring
   const { data: existing } = await supabase
     .from("couples")
-    .select("id")
+    .select("*")
     .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
     .maybeSingle()
 
   if (existing) {
-    return NextResponse.json({ error: "Already in a couple" }, { status: 400 })
+    return NextResponse.json(existing)
   }
 
   const { data, error } = await supabase
@@ -68,6 +69,7 @@ export async function POST() {
     .single()
 
   if (error) {
+    console.error("[POST /api/couple] Insert error:", error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
@@ -91,7 +93,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  // Only block if user is already in a FULLY connected couple (both users present)
+  // Block only if already in a fully connected couple
   const { data: existing } = await supabase
     .from("couples")
     .select("id, user_b_id")
@@ -103,21 +105,20 @@ export async function PATCH(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { invite_code } = body
+  const inviteCode = body.invite_code?.trim().toUpperCase()
 
-  if (!invite_code) {
-    return NextResponse.json({ error: "invite_code is required" }, { status: 400 })
+  if (!inviteCode) {
+    return NextResponse.json({ error: "Thiếu mã mời" }, { status: 400 })
   }
 
-  const normalizedCode = invite_code.trim().toUpperCase()
-  console.log("[PATCH /api/couple] Searching for invite_code:", normalizedCode)
+  console.log("[PATCH /api/couple] Searching for invite_code:", inviteCode)
 
-  // Use ilike for case-insensitive match, maybeSingle to avoid throwing on no-match
   const { data: couple, error: findError } = await supabase
     .from("couples")
     .select("*")
-    .ilike("invite_code", normalizedCode)
+    .ilike("invite_code", inviteCode)
     .is("user_b_id", null)
+    .neq("user_a_id", user.id)
     .maybeSingle()
 
   console.log("[PATCH /api/couple] Found:", couple, "Error:", findError)
@@ -127,12 +128,7 @@ export async function PATCH(request: NextRequest) {
   }
 
   if (!couple) {
-    return NextResponse.json({ error: "Mã không hợp lệ hoặc đã được sử dụng" }, { status: 404 })
-  }
-
-  // Prevent user from joining their own couple
-  if (couple.user_a_id === user.id) {
-    return NextResponse.json({ error: "Không thể dùng mã của chính mình" }, { status: 400 })
+    return NextResponse.json({ error: "Mã không hợp lệ hoặc đã được sử dụng" }, { status: 400 })
   }
 
   const { data: updated, error: updateError } = await supabase
@@ -146,5 +142,5 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: updateError.message }, { status: 500 })
   }
 
-  return NextResponse.json(updated, { status: 200 })
+  return NextResponse.json({ success: true, couple: updated })
 }
