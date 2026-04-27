@@ -1,243 +1,681 @@
 "use client"
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { MOOD_OPTIONS, getMoodByEmoji } from '@/lib/mood-config'
 
-import { useEffect, useMemo, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import type { MoodEntry } from "@/types"
-import { MOOD_OPTIONS } from "@/lib/mood-config"
-import MoodPicker from "./MoodPicker"
-import WeeklyGrid from "./WeeklyGrid"
-
-interface MoodClientProps {
-  entries: MoodEntry[]
-  dates: string[]
-  userId: string
-  coupleId: string
-  partnerId: string | null
-  myName: string
-  partnerName: string
-  myAvatar?: string | null
-  partnerAvatar?: string | null
+interface MoodEntry {
+  id: string
+  user_id: string
+  emoji: string
+  color: string
+  entry_date: string
 }
 
-export default function MoodClient({
-  entries,
-  dates,
-  userId,
-  coupleId,
-  partnerId,
-  myName,
-  partnerName,
-  myAvatar,
-  partnerAvatar,
-}: MoodClientProps) {
-  const [moodEntries, setMoodEntries] = useState<MoodEntry[]>(entries)
+interface Props {
+  coupleId: string
+  currentUserId: string
+  partnerName: string
+  initialEntries: MoodEntry[]
+  today: string
+}
+
+export function MoodClient({
+  coupleId, currentUserId, partnerName, initialEntries, today
+}: Props) {
+  const [entries, setEntries] = useState<MoodEntry[]>(initialEntries)
   const [showPicker, setShowPicker] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const supabase = useMemo(() => createClient(), [])
+  const [saving, setSaving] = useState(false)
+  const supabase = createClient()
 
-  const today = new Date().toISOString().split("T")[0]
-  const todayEntry = moodEntries.find((e) => e.entry_date === today && e.user_id === userId)
-  const partnerTodayEntry = partnerId
-    ? moodEntries.find((e) => e.entry_date === today && e.user_id === partnerId)
-    : null
-  const partnerMood = partnerTodayEntry
-    ? MOOD_OPTIONS.find((m) => m.emoji === partnerTodayEntry.emoji)
-    : null
+  const myMood = entries.find(e => e.user_id === currentUserId && e.entry_date === today)
+  const partnerMood = entries.find(e => e.user_id !== currentUserId && e.entry_date === today)
+  const myMoodInfo = myMood ? getMoodByEmoji(myMood.emoji) : null
+  const partnerMoodInfo = partnerMood ? getMoodByEmoji(partnerMood.emoji) : null
 
-  // Streak: count consecutive days both users have entries
-  const streak = useMemo(() => {
-    if (!partnerId) return 0
+  // Streak count
+  const streakDays = (() => {
     let count = 0
-    const sortedDates = [...dates].sort((a, b) => (a < b ? 1 : -1))
-    for (const date of sortedDates) {
-      const hasMe = moodEntries.some((e) => e.entry_date === date && e.user_id === userId)
-      const hasPartner = moodEntries.some((e) => e.entry_date === date && e.user_id === partnerId)
-      if (hasMe && hasPartner) {
-        count++
-      } else {
-        break
-      }
+    const d = new Date()
+    while (true) {
+      const dateStr = d.toISOString().split('T')[0]
+      const hasEntry = entries.some(e => e.user_id === currentUserId && e.entry_date === dateStr)
+      if (!hasEntry) break
+      count++
+      d.setDate(d.getDate() - 1)
     }
     return count
-  }, [moodEntries, dates, userId, partnerId])
+  })()
 
-  // Stats: most common mood this week (combined)
-  const topMood = useMemo(() => {
-    const counts: Record<string, number> = {}
-    for (const entry of moodEntries) {
-      counts[entry.emoji] = (counts[entry.emoji] ?? 0) + 1
-    }
-    let best: string | null = null
-    let max = 0
-    for (const [emoji, count] of Object.entries(counts)) {
-      if (count > max) {
-        max = count
-        best = emoji
-      }
-    }
-    return best
-  }, [moodEntries])
+  // Most common mood this week
+  const myWeekEntries = entries.filter(e => e.user_id === currentUserId)
+  const moodCount: Record<string, number> = {}
+  myWeekEntries.forEach(e => { moodCount[e.emoji] = (moodCount[e.emoji] || 0) + 1 })
+  const topMood = Object.entries(moodCount).sort((a, b) => b[1] - a[1])[0]?.[0]
 
-  useEffect(() => {
-    const channel = supabase
-      .channel(`mood-${coupleId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "mood_entries",
-          filter: `couple_id=eq.${coupleId}`,
-        },
-        (payload) => {
-          if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
-            const entry = payload.new as MoodEntry
-            setMoodEntries((prev) => {
-              const filtered = prev.filter(
-                (e) => !(e.entry_date === entry.entry_date && e.user_id === entry.user_id)
-              )
-              return [entry, ...filtered]
-            })
-          }
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [coupleId, supabase])
-
-  async function handleMoodSelect(emoji: string, color: string) {
-    setSaveError(null)
+  const handleSelectMood = async (emoji: string, color: string) => {
+    setSaving(true)
     const { data, error } = await supabase
-      .from("mood_entries")
-      .upsert(
-        { couple_id: coupleId, user_id: userId, emoji, color, entry_date: today },
-        { onConflict: "couple_id,user_id,entry_date" }
-      )
+      .from('mood_entries')
+      .upsert({
+        couple_id: coupleId,
+        user_id: currentUserId,
+        emoji,
+        color,
+        entry_date: today,
+      }, { onConflict: 'couple_id,user_id,entry_date' })
       .select()
       .single()
 
-    if (error) {
-      setSaveError("Không thể lưu tâm trạng, thử lại nhé")
-      return
-    }
-    if (data) {
-      setMoodEntries((prev) => {
-        const filtered = prev.filter(
-          (e) => !(e.entry_date === today && e.user_id === userId)
-        )
-        return [data, ...filtered]
+    if (!error && data) {
+      setEntries(prev => {
+        const filtered = prev.filter(e => !(e.user_id === currentUserId && e.entry_date === today))
+        return [data as MoodEntry, ...filtered]
       })
     }
     setShowPicker(false)
+    setSaving(false)
   }
 
+  // Realtime
+  useEffect(() => {
+    if (!coupleId) return
+    const channel = supabase
+      .channel(`mood-page-${coupleId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'mood_entries',
+        filter: `couple_id=eq.${coupleId}`,
+      }, (payload) => {
+        const p = payload as unknown as { eventType: string; new: MoodEntry }
+        if (p.eventType === 'INSERT' || p.eventType === 'UPDATE') {
+          setEntries(prev => {
+            const filtered = prev.filter(e =>
+              !(e.user_id === p.new.user_id && e.entry_date === p.new.entry_date)
+            )
+            return [p.new, ...filtered]
+          })
+        }
+      })
+      .subscribe()
+    return () => { void supabase.removeChannel(channel) }
+  }, [coupleId])
+
+  // Last 7 days
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (6 - i))
+    return d.toISOString().split('T')[0]
+  })
+
+  const dayLabels = ['T2','T3','T4','T5','T6','T7','CN']
+  const getDayLabel = (dateStr: string) => {
+    const day = new Date(dateStr).getDay()
+    return dayLabels[day === 0 ? 6 : day - 1]
+  }
+
+  const isToday = (dateStr: string) => dateStr === today
+
+  const bothCheckedIn = myMood && partnerMood
+  const neitherCheckedIn = !myMood && !partnerMood
+
+  const sweetMessages = [
+    '"Hôm nay cả hai đều online ♡"',
+    '"Tuyệt vời khi cùng cảm nhận nhau ♡"',
+    '"Nhịp tim hai mình đang đồng điệu ♡"',
+  ]
+  const sweetMsg = sweetMessages[Math.floor(Math.random() * sweetMessages.length)]
+
   return (
-    <div className="px-4 space-y-4">
-      {saveError && (
-        <div className="rounded-xl px-4 py-2 text-xs text-center" style={{ backgroundColor: "#FEE2E2", color: "#C0607A" }}>
-          {saveError}
+    <div style={{
+      minHeight: '100dvh',
+      background: '#FDF8F5',
+      paddingBottom: 'calc(80px + env(safe-area-inset-bottom))',
+    }}>
+      {/* Gradient bar top */}
+      <div style={{
+        height: 4,
+        background: 'linear-gradient(90deg, #F7D6DF, #E8A0B0, #C4B5D8)',
+      }} />
+
+      <div style={{ padding: '18px 16px 0' }}>
+
+        {/* Header */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: 4,
+        }}>
+          <div>
+            <h1 style={{
+              fontSize: 24,
+              fontWeight: 400,
+              color: '#3A2832',
+              fontFamily: 'Georgia, serif',
+              fontStyle: 'italic',
+              lineHeight: 1.2,
+            }}>
+              Moodboard
+            </h1>
+            <p style={{ fontSize: 11, color: '#B8909A', marginTop: 2 }}>
+              {new Date().toLocaleDateString('vi-VN', {
+                weekday: 'long', day: 'numeric', month: 'long'
+              })} ♡
+            </p>
+          </div>
+          <span style={{
+            fontSize: 28,
+            animation: 'float 3s ease-in-out infinite',
+          }}>🌸</span>
         </div>
-      )}
-      {/* Streak + Stats row */}
-      {(streak > 0 || topMood) && (
-        <div className="flex gap-3">
-          {streak > 0 && (
-            <div
-              className="flex-1 rounded-2xl p-3 border shadow-sm flex items-center gap-2"
-              style={{ backgroundColor: "#FFFFFF", borderColor: "#F0E4DF" }}
-            >
-              <span className="text-xl">🔥</span>
-              <div>
-                <p className="text-xs font-semibold" style={{ color: "#C0607A" }}>
-                  {streak} ngày streak
-                </p>
-                <p className="text-[10px]" style={{ color: "#8A6A72" }}>
-                  Cùng cập nhật liên tục
-                </p>
-              </div>
-            </div>
-          )}
+
+        {/* Stats pills */}
+        <div style={{
+          display: 'flex',
+          gap: 8,
+          margin: '12px 0 16px',
+          flexWrap: 'wrap',
+        }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            background: '#FBEAF0',
+            border: '0.5px solid #F4C0D1',
+            borderRadius: 20,
+            padding: '5px 12px',
+          }}>
+            <span style={{ fontSize: 14 }}>🔥</span>
+            <span style={{ fontSize: 11, fontWeight: 500, color: '#C0607A' }}>
+              {streakDays} ngày streak
+            </span>
+          </div>
           {topMood && (
-            <div
-              className="flex-1 rounded-2xl p-3 border shadow-sm flex items-center gap-2"
-              style={{ backgroundColor: "#FFFFFF", borderColor: "#F0E4DF" }}
-            >
-              <span className="text-xl">{topMood}</span>
-              <div>
-                <p className="text-xs font-semibold" style={{ color: "#C0607A" }}>
-                  Mood nổi bật
-                </p>
-                <p className="text-[10px]" style={{ color: "#8A6A72" }}>
-                  Tuần này hay {topMood} nhất
-                </p>
-              </div>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              background: '#FBEAF0',
+              border: '0.5px solid #F4C0D1',
+              borderRadius: 20,
+              padding: '5px 12px',
+            }}>
+              <span style={{ fontSize: 14 }}>{topMood}</span>
+              <span style={{ fontSize: 11, fontWeight: 500, color: '#C0607A' }}>
+                mood nổi bật
+              </span>
             </div>
           )}
         </div>
-      )}
 
-      {/* My mood + Partner mood */}
-      <div className="flex gap-3">
-        <div
-          className="flex-1 rounded-2xl p-4 border shadow-sm"
-          style={{ backgroundColor: "#FFFFFF", borderColor: "#F0E4DF" }}
-        >
-          <MoodPicker
-            todayEntry={todayEntry ?? null}
-            onSelect={handleMoodSelect}
-            showPicker={showPicker}
-            setShowPicker={setShowPicker}
-          />
+        {/* MAIN MOOD CARD */}
+        <div style={{
+          background: 'white',
+          borderRadius: 24,
+          border: '0.5px solid #F4C0D1',
+          overflow: 'hidden',
+          marginBottom: 12,
+        }}>
+          {/* Card header */}
+          <div style={{
+            background: '#FDF0F5',
+            padding: '10px 16px',
+            borderBottom: '0.5px solid #FCE4EC',
+          }}>
+            <p style={{
+              fontSize: 11,
+              fontWeight: 500,
+              color: '#C0607A',
+              letterSpacing: '0.04em',
+            }}>
+              Cảm xúc hôm nay của hai mình
+            </p>
+          </div>
+
+          {/* Two cards side by side */}
+          <div style={{
+            display: 'flex',
+            padding: '16px 12px',
+            gap: 8,
+          }}>
+            {/* Me */}
+            <div style={{
+              flex: 1,
+              background: myMoodInfo?.color ? myMoodInfo.color + '88' : '#FFF5F8',
+              borderRadius: 18,
+              padding: '14px 8px',
+              textAlign: 'center',
+              border: '1px solid #FCE4EC',
+              transition: 'background 0.4s ease',
+            }}>
+              <p style={{
+                fontSize: 9,
+                fontWeight: 500,
+                color: '#E8A0B0',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                marginBottom: 8,
+              }}>
+                Mình
+              </p>
+              <div style={{
+                fontSize: 40,
+                lineHeight: 1,
+                marginBottom: 6,
+                animation: myMood ? 'popIn 0.4s cubic-bezier(0.34,1.56,0.64,1)' : 'none',
+              }}>
+                {myMood?.emoji ?? '🌙'}
+              </div>
+              <p style={{
+                fontSize: 12,
+                fontWeight: 500,
+                color: myMoodInfo?.textColor ?? '#B8909A',
+                marginBottom: 10,
+              }}>
+                {myMoodInfo?.label ?? 'Chưa cập nhật'}
+              </p>
+              <button
+                onClick={() => setShowPicker(!showPicker)}
+                disabled={saving}
+                style={{
+                  fontSize: 11,
+                  padding: '6px 0',
+                  borderRadius: 20,
+                  background: 'rgba(255,255,255,0.8)',
+                  border: '0.5px solid #F4C0D1',
+                  color: '#C0607A',
+                  cursor: 'pointer',
+                  width: '100%',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                }}
+              >
+                {myMood ? '✏️ Thay đổi' : '+ Cập nhật'}
+              </button>
+            </div>
+
+            {/* Heart divider */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              padding: '0 2px',
+            }}>
+              <div style={{ width: 1, height: 20, background: '#FCE4EC' }} />
+              <span style={{
+                fontSize: 16,
+                color: '#E8A0B0',
+                animation: 'pulse 2s ease-in-out infinite',
+              }}>♡</span>
+              <div style={{ width: 1, height: 20, background: '#FCE4EC' }} />
+            </div>
+
+            {/* Partner */}
+            <div style={{
+              flex: 1,
+              background: partnerMoodInfo?.color ? partnerMoodInfo.color + '88' : '#F5FBF8',
+              borderRadius: 18,
+              padding: '14px 8px',
+              textAlign: 'center',
+              border: '1px solid #D8EDE5',
+              transition: 'background 0.4s ease',
+            }}>
+              <p style={{
+                fontSize: 9,
+                fontWeight: 500,
+                color: '#A8C5B5',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                marginBottom: 8,
+              }}>
+                {partnerName.split(' ').slice(-1)[0]}
+              </p>
+              <div style={{
+                fontSize: 40,
+                lineHeight: 1,
+                marginBottom: 6,
+                animation: partnerMood ? 'popIn 0.4s cubic-bezier(0.34,1.56,0.64,1)' : 'none',
+              }}>
+                {partnerMood?.emoji ?? '🌙'}
+              </div>
+              <p style={{
+                fontSize: 12,
+                fontWeight: 500,
+                color: partnerMoodInfo?.textColor ?? '#A8C5B5',
+                marginBottom: 10,
+              }}>
+                {partnerMoodInfo?.label ?? 'Chưa cập nhật'}
+              </p>
+              <div style={{
+                fontSize: 11,
+                padding: '6px 0',
+                borderRadius: 20,
+                background: partnerMood
+                  ? 'rgba(168,197,181,0.3)'
+                  : 'rgba(255,255,255,0.6)',
+                border: `0.5px solid ${partnerMood ? '#B8DEC8' : '#D8EDE5'}`,
+                color: partnerMood ? '#2A6A55' : '#A8C5B5',
+                textAlign: 'center',
+              }}>
+                {partnerMood ? '✓ Đã cập nhật' : 'Đang chờ...'}
+              </div>
+            </div>
+          </div>
+
+          {/* Sweet message khi cả 2 check in */}
+          {bothCheckedIn && (
+            <div style={{
+              margin: '0 12px 14px',
+              background: '#FFFBF5',
+              borderRadius: 12,
+              padding: '8px 12px',
+              border: '0.5px solid #F9E4C8',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              animation: 'fadeUp 0.4s ease both',
+            }}>
+              <span style={{ fontSize: 14 }}>✨</span>
+              <span style={{
+                fontSize: 11,
+                color: '#C0607A',
+                fontStyle: 'italic',
+                fontFamily: 'Georgia, serif',
+              }}>
+                {sweetMsg}
+              </span>
+            </div>
+          )}
+
+          {/* Encourage khi chưa ai check in */}
+          {neitherCheckedIn && (
+            <div style={{
+              margin: '0 12px 14px',
+              background: '#FBEAF0',
+              borderRadius: 12,
+              padding: '8px 12px',
+              border: '0.5px solid #F4C0D1',
+              textAlign: 'center',
+            }}>
+              <p style={{
+                fontSize: 11,
+                color: '#C0607A',
+                fontStyle: 'italic',
+                fontFamily: 'Georgia, serif',
+              }}>
+                &quot;Hôm nay bạn đang cảm thấy thế nào? ♡&quot;
+              </p>
+            </div>
+          )}
         </div>
 
-        {partnerId && (
-          <div
-            className="flex-1 rounded-2xl p-4 border shadow-sm flex flex-col items-center justify-center gap-2"
-            style={{ backgroundColor: "#FFFFFF", borderColor: "#F0E4DF" }}
-          >
-            <h2 className="text-xs font-semibold self-start" style={{ color: "#8A6A72" }}>
-              {partnerName}
-            </h2>
-            {partnerMood ? (
-              <>
-                <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center text-3xl shadow-sm"
-                  style={{ backgroundColor: partnerMood.color }}
+        {/* MOOD PICKER */}
+        {showPicker && (
+          <div style={{
+            background: 'white',
+            borderRadius: 20,
+            border: '0.5px solid #F4C0D1',
+            padding: '14px 14px 10px',
+            marginBottom: 12,
+            animation: 'fadeUp 0.3s ease both',
+          }}>
+            <p style={{
+              fontSize: 11,
+              color: '#B8909A',
+              fontWeight: 500,
+              textAlign: 'center',
+              marginBottom: 12,
+            }}>
+              Hôm nay bạn thế nào? 🌸
+            </p>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 6,
+              marginBottom: 10,
+            }}>
+              {MOOD_OPTIONS.map(mood => (
+                <button
+                  key={mood.emoji}
+                  onClick={() => void handleSelectMood(mood.emoji, mood.color)}
+                  disabled={saving}
+                  style={{
+                    background: mood.color,
+                    border: myMood?.emoji === mood.emoji
+                      ? `2px solid ${mood.textColor}`
+                      : '2px solid transparent',
+                    borderRadius: 14,
+                    padding: '10px 4px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 4,
+                    transition: 'transform 0.15s',
+                  }}
                 >
-                  {partnerMood.emoji}
-                </div>
-                <p className="text-xs font-medium" style={{ color: "#3A2832" }}>
-                  {partnerMood.label}
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-center py-2" style={{ color: "#C0909C" }}>
-                Chưa cập nhật 🌙
-              </p>
-            )}
+                  <span style={{ fontSize: 26, display: 'block' }}>{mood.emoji}</span>
+                  <span style={{
+                    fontSize: 9,
+                    color: mood.textColor,
+                    fontWeight: 500,
+                    lineHeight: 1.2,
+                    textAlign: 'center',
+                  }}>
+                    {mood.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowPicker(false)}
+              style={{
+                width: '100%',
+                padding: '8px 0',
+                borderRadius: 20,
+                background: 'transparent',
+                border: '0.5px solid #F4C0D1',
+                color: '#B8909A',
+                fontSize: 11,
+                cursor: 'pointer',
+              }}
+            >
+              Đóng
+            </button>
           </div>
         )}
+
+        {/* WEEKLY GRID */}
+        <div style={{
+          background: 'white',
+          borderRadius: 20,
+          border: '0.5px solid #F4C0D1',
+          padding: '14px 12px',
+          marginBottom: 12,
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 12,
+          }}>
+            <p style={{ fontSize: 13, fontWeight: 500, color: '#3A2832' }}>
+              7 ngày gần nhất
+            </p>
+            <p style={{ fontSize: 10, color: '#B8909A' }}>tuần này</p>
+          </div>
+
+          {/* Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '24px repeat(7, 1fr)',
+            gap: 3,
+            alignItems: 'center',
+          }}>
+            {/* Header row */}
+            <div />
+            {last7Days.map(d => (
+              <div key={d} style={{
+                fontSize: 8,
+                color: isToday(d) ? '#C0607A' : '#B8909A',
+                fontWeight: isToday(d) ? 600 : 400,
+                textAlign: 'center',
+                background: isToday(d) ? '#FBEAF0' : 'transparent',
+                borderRadius: 4,
+                padding: '2px 0',
+              }}>
+                {getDayLabel(d)}
+              </div>
+            ))}
+
+            {/* My row */}
+            <div style={{
+              width: 22, height: 22,
+              borderRadius: '50%',
+              background: '#F7D6DF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 9,
+              fontWeight: 600,
+              color: '#C0607A',
+            }}>M</div>
+            {last7Days.map(d => {
+              const entry = entries.find(e => e.user_id === currentUserId && e.entry_date === d)
+              return (
+                <div key={d} style={{
+                  height: 30,
+                  borderRadius: 8,
+                  background: entry ? entry.color : '#F0EEF5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: entry ? 16 : 0,
+                  transition: 'all 0.3s',
+                  animation: entry && isToday(d)
+                    ? 'popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.2s both'
+                    : 'none',
+                }}>
+                  {entry?.emoji}
+                </div>
+              )
+            })}
+
+            {/* Partner row */}
+            <div style={{
+              width: 22, height: 22,
+              borderRadius: '50%',
+              background: '#D8EDE5',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 9,
+              fontWeight: 600,
+              color: '#2A6A55',
+            }}>
+              {partnerName.charAt(0).toUpperCase()}
+            </div>
+            {last7Days.map(d => {
+              const entry = entries.find(e => e.user_id !== currentUserId && e.entry_date === d)
+              return (
+                <div key={d} style={{
+                  height: 30,
+                  borderRadius: 8,
+                  background: entry ? entry.color : '#F0EEF5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: entry ? 16 : 0,
+                  transition: 'all 0.3s',
+                  animation: entry && isToday(d)
+                    ? 'popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.4s both'
+                    : 'none',
+                }}>
+                  {entry?.emoji}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Sweet message khi cả 2 check in */}
+          {bothCheckedIn && (
+            <div style={{
+              marginTop: 10,
+              background: '#FFF5F8',
+              borderRadius: 10,
+              padding: '7px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}>
+              <span style={{ fontSize: 13 }}>✨</span>
+              <span style={{
+                fontSize: 10,
+                color: '#C0607A',
+                fontStyle: 'italic',
+                fontFamily: 'Georgia, serif',
+              }}>
+                {sweetMsg}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* LEGEND — 4 cột cố định */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 5,
+          paddingBottom: 8,
+        }}>
+          {MOOD_OPTIONS.map(mood => (
+            <div key={mood.emoji} style={{
+              background: mood.color,
+              borderRadius: 20,
+              padding: '5px 0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 3,
+            }}>
+              <span style={{ fontSize: 12 }}>{mood.emoji}</span>
+              <span style={{
+                fontSize: 9,
+                color: mood.textColor,
+                fontWeight: 500,
+                whiteSpace: 'nowrap',
+              }}>
+                {mood.label}
+              </span>
+            </div>
+          ))}
+        </div>
+
       </div>
 
-      {/* Weekly grid */}
-      <div
-        className="rounded-2xl p-4 border shadow-sm"
-        style={{ backgroundColor: "#FFFFFF", borderColor: "#F0E4DF" }}
-      >
-        <WeeklyGrid
-          entries={moodEntries}
-          dates={dates}
-          userId={userId}
-          partnerId={partnerId}
-          myName={myName}
-          partnerName={partnerName}
-          myAvatar={myAvatar}
-          partnerAvatar={partnerAvatar}
-        />
-      </div>
+      <style>{`
+        @keyframes float {
+          0%,100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
+        }
+        @keyframes popIn {
+          0%  { transform: scale(0); opacity: 0; }
+          70% { transform: scale(1.2); }
+          100%{ transform: scale(1); opacity: 1; }
+        }
+        @keyframes pulse {
+          0%,100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.88); }
+        }
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        button:active { transform: scale(0.95); }
+      `}</style>
     </div>
   )
 }
