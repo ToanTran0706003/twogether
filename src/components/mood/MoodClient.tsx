@@ -1,36 +1,54 @@
 "use client"
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useMood } from '@/hooks/useMood'
 import { MOOD_OPTIONS, getMoodByEmoji } from '@/lib/mood-config'
-
-interface MoodEntry {
-  id: string
-  user_id: string
-  emoji: string
-  color: string
-  entry_date: string
-}
+import type { MoodEntry } from '@/types'
 
 interface Props {
   coupleId: string
   currentUserId: string
   partnerName: string
   initialEntries: MoodEntry[]
-  today: string
 }
 
 export function MoodClient({
-  coupleId, currentUserId, partnerName, initialEntries, today
+  coupleId, currentUserId, partnerName, initialEntries,
 }: Props) {
-  const [entries, setEntries] = useState<MoodEntry[]>(initialEntries)
-  const [showPicker, setShowPicker] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const supabase = createClient()
+  const { myMood, partnerMood, isSaving: saving, saveError, updateMood, today } = useMood({
+    coupleId,
+    userId: currentUserId,
+  })
 
-  const myMood = entries.find(e => e.user_id === currentUserId && e.entry_date === today)
-  const partnerMood = entries.find(e => e.user_id !== currentUserId && e.entry_date === today)
+  // Weekly grid entries: seeded from server, kept in sync via hook-derived myMood/partnerMood
+  const [weeklyEntries, setWeeklyEntries] = useState<MoodEntry[]>(initialEntries)
+  const [showPicker, setShowPicker] = useState(false)
+
+  // Sync today's moods into the weekly grid when the hook updates them
+  useEffect(() => {
+    if (myMood) {
+      setWeeklyEntries(prev => [
+        myMood,
+        ...prev.filter(e => !(e.user_id === currentUserId && e.entry_date === myMood.entry_date)),
+      ])
+    }
+  }, [myMood, currentUserId])
+
+  useEffect(() => {
+    if (partnerMood) {
+      setWeeklyEntries(prev => [
+        partnerMood,
+        ...prev.filter(e => !(e.user_id === partnerMood.user_id && e.entry_date === partnerMood.entry_date)),
+      ])
+    }
+  }, [partnerMood])
+
   const myMoodInfo = myMood ? getMoodByEmoji(myMood.emoji) : null
   const partnerMoodInfo = partnerMood ? getMoodByEmoji(partnerMood.emoji) : null
+
+  const handleSelectMood = async (emoji: string, color: string) => {
+    const result = await updateMood(emoji, color)
+    if (result) setShowPicker(false)
+  }
 
   // Streak count
   const streakDays = (() => {
@@ -38,7 +56,7 @@ export function MoodClient({
     const d = new Date()
     while (true) {
       const dateStr = d.toISOString().split('T')[0]
-      const hasEntry = entries.some(e => e.user_id === currentUserId && e.entry_date === dateStr)
+      const hasEntry = weeklyEntries.some(e => e.user_id === currentUserId && e.entry_date === dateStr)
       if (!hasEntry) break
       count++
       d.setDate(d.getDate() - 1)
@@ -47,59 +65,10 @@ export function MoodClient({
   })()
 
   // Most common mood this week
-  const myWeekEntries = entries.filter(e => e.user_id === currentUserId)
+  const myWeekEntries = weeklyEntries.filter(e => e.user_id === currentUserId)
   const moodCount: Record<string, number> = {}
   myWeekEntries.forEach(e => { moodCount[e.emoji] = (moodCount[e.emoji] || 0) + 1 })
   const topMood = Object.entries(moodCount).sort((a, b) => b[1] - a[1])[0]?.[0]
-
-  const handleSelectMood = async (emoji: string, color: string) => {
-    setSaving(true)
-    const { data, error } = await supabase
-      .from('mood_entries')
-      .upsert({
-        couple_id: coupleId,
-        user_id: currentUserId,
-        emoji,
-        color,
-        entry_date: today,
-      }, { onConflict: 'couple_id,user_id,entry_date' })
-      .select()
-      .single()
-
-    if (!error && data) {
-      setEntries(prev => {
-        const filtered = prev.filter(e => !(e.user_id === currentUserId && e.entry_date === today))
-        return [data as MoodEntry, ...filtered]
-      })
-    }
-    setShowPicker(false)
-    setSaving(false)
-  }
-
-  // Realtime
-  useEffect(() => {
-    if (!coupleId) return
-    const channel = supabase
-      .channel(`mood-page-${coupleId}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'mood_entries',
-        filter: `couple_id=eq.${coupleId}`,
-      }, (payload) => {
-        const p = payload as unknown as { eventType: string; new: MoodEntry }
-        if (p.eventType === 'INSERT' || p.eventType === 'UPDATE') {
-          setEntries(prev => {
-            const filtered = prev.filter(e =>
-              !(e.user_id === p.new.user_id && e.entry_date === p.new.entry_date)
-            )
-            return [p.new, ...filtered]
-          })
-        }
-      })
-      .subscribe()
-    return () => { void supabase.removeChannel(channel) }
-  }, [coupleId])
 
   // Last 7 days
   const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -412,6 +381,22 @@ export function MoodClient({
           )}
         </div>
 
+        {/* Error message */}
+        {saveError && (
+          <div style={{
+            background: '#FFF0F0',
+            border: '0.5px solid #F4C0C0',
+            borderRadius: 12,
+            padding: '8px 14px',
+            marginBottom: 12,
+            fontSize: 12,
+            color: '#A32D2D',
+            textAlign: 'center',
+          }}>
+            {saveError}
+          </div>
+        )}
+
         {/* MOOD PICKER */}
         {showPicker && (
           <div style={{
@@ -449,11 +434,12 @@ export function MoodClient({
                       : '2px solid transparent',
                     borderRadius: 14,
                     padding: '10px 4px',
-                    cursor: 'pointer',
+                    cursor: saving ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: 4,
+                    opacity: saving ? 0.6 : 1,
                     transition: 'transform 0.15s',
                   }}
                 >
@@ -544,12 +530,12 @@ export function MoodClient({
               color: '#C0607A',
             }}>M</div>
             {last7Days.map(d => {
-              const entry = entries.find(e => e.user_id === currentUserId && e.entry_date === d)
+              const entry = weeklyEntries.find(e => e.user_id === currentUserId && e.entry_date === d)
               return (
                 <div key={d} style={{
                   height: 30,
                   borderRadius: 8,
-                  background: entry ? entry.color : '#F0EEF5',
+                  background: entry?.color ?? '#F0EEF5',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -579,12 +565,12 @@ export function MoodClient({
               {partnerName.charAt(0).toUpperCase()}
             </div>
             {last7Days.map(d => {
-              const entry = entries.find(e => e.user_id !== currentUserId && e.entry_date === d)
+              const entry = weeklyEntries.find(e => e.user_id !== currentUserId && e.entry_date === d)
               return (
                 <div key={d} style={{
                   height: 30,
                   borderRadius: 8,
-                  background: entry ? entry.color : '#F0EEF5',
+                  background: entry?.color ?? '#F0EEF5',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

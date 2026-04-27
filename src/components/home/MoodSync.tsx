@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+import { useMood } from "@/hooks/useMood"
 import { MOOD_OPTIONS, getMoodByEmoji } from "@/lib/mood-config"
 import type { MoodEntry } from "@/types"
 
@@ -13,71 +13,13 @@ interface MoodSyncProps {
 }
 
 export default function MoodSync({ coupleId, userId, partnerName = "Người ấy" }: MoodSyncProps) {
-  const [myMood, setMyMood] = useState<MoodEntry | null>(null)
-  const [partnerMood, setPartnerMood] = useState<MoodEntry | null>(null)
+  const { myMood, partnerMood, isSaving, saveError, updateMood } = useMood({ coupleId, userId })
   const [showPicker, setShowPicker] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const supabase = useMemo(() => createClient(), [])
-  const today = new Date().toISOString().split("T")[0]
-
-  async function fetchMoods() {
-    const { data } = await supabase
-      .from("mood_entries")
-      .select("*")
-      .eq("couple_id", coupleId)
-      .eq("entry_date", today)
-    if (data) {
-      setMyMood((data as MoodEntry[]).find(m => m.user_id === userId) ?? null)
-      setPartnerMood((data as MoodEntry[]).find(m => m.user_id !== userId) ?? null)
-    }
-  }
-
-  useEffect(() => {
-    void fetchMoods()
-
-    const channel = supabase
-      .channel(`mood-home-${coupleId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "mood_entries", filter: `couple_id=eq.${coupleId}` },
-        () => { void fetchMoods() }
-      )
-      .subscribe()
-
-    return () => { void supabase.removeChannel(channel) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coupleId])
 
   async function selectMood(emoji: string, color: string) {
-    setIsLoading(true)
-    const { data, error } = await supabase
-      .from("mood_entries")
-      .upsert(
-        { couple_id: coupleId, user_id: userId, emoji, color, entry_date: today },
-        { onConflict: "couple_id,user_id,entry_date" }
-      )
-      .select()
-      .single()
-
-    if (!error && data) {
-      setMyMood(data as MoodEntry)
-      const moodLabel = getMoodByEmoji(emoji)?.label ?? emoji
-      void fetch("/api/push/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          couple_id: coupleId,
-          sender_id: userId,
-          type: "mood_update",
-          title: "Người yêu vừa cập nhật tâm trạng",
-          body: `${emoji} ${moodLabel}`,
-          url: "/mood",
-        }),
-      })
-    }
-    setShowPicker(false)
-    setIsLoading(false)
+    const result = await updateMood(emoji, color)
+    if (result) setShowPicker(false)
   }
 
   return (
@@ -101,6 +43,21 @@ export default function MoodSync({ coupleId, userId, partnerName = "Người ấ
         />
       </div>
 
+      {saveError && (
+        <div style={{
+          marginTop: 8,
+          fontSize: 12,
+          color: "#A32D2D",
+          background: "#FFF0F0",
+          border: "0.5px solid #F4C0C0",
+          borderRadius: 10,
+          padding: "6px 12px",
+          textAlign: "center",
+        }}>
+          {saveError}
+        </div>
+      )}
+
       {showPicker && (
         <div style={{
           marginTop: 12,
@@ -117,18 +74,18 @@ export default function MoodSync({ coupleId, userId, partnerName = "Người ấ
               <button
                 key={mood.emoji}
                 onClick={() => void selectMood(mood.emoji, mood.color)}
-                disabled={isLoading}
+                disabled={isSaving}
                 style={{
                   background: mood.color,
-                  border: "none",
+                  border: myMood?.emoji === mood.emoji ? `2px solid ${mood.textColor}` : "none",
                   borderRadius: 12,
                   padding: "10px 6px",
-                  cursor: isLoading ? "not-allowed" : "pointer",
+                  cursor: isSaving ? "not-allowed" : "pointer",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
                   gap: 4,
-                  opacity: isLoading ? 0.6 : 1,
+                  opacity: isSaving ? 0.6 : 1,
                 }}
               >
                 <span style={{ fontSize: 24 }}>{mood.emoji}</span>

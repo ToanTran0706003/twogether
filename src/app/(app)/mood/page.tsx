@@ -12,12 +12,12 @@ export default async function MoodPage() {
     .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
     .maybeSingle()
 
-  const today = new Date().toISOString().split('T')[0]
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]
   const { data: moodEntries } = await supabase
     .from('mood_entries')
     .select('*')
     .eq('couple_id', couple?.id ?? '')
-    .gte('entry_date', new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0])
+    .gte('entry_date', sevenDaysAgo)
     .order('entry_date', { ascending: false })
 
   const partner = couple?.user_a_id === user.id
@@ -30,7 +30,6 @@ export default async function MoodPage() {
       currentUserId={user.id}
       partnerName={partner?.name ?? 'Người ấy'}
       initialEntries={moodEntries ?? []}
-      today={today}
     />
   )
 }
