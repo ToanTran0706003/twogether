@@ -11,44 +11,34 @@ export async function proxy(request: NextRequest) {
 
   let supabaseResponse = NextResponse.next({ request })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
+  const supabase = createServerClient(url, anonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll()
       },
-    }
-  )
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+        supabaseResponse = NextResponse.next({ request })
+        cookiesToSet.forEach(({ name, value, options }) =>
+          supabaseResponse.cookies.set(name, value, options)
+        )
+      },
+    },
+  })
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+  const { data: { user } } = await supabase.auth.getUser()
   const pathname = request.nextUrl.pathname
 
-  const APP_PATHS = ["/home", "/locket", "/quest", "/mood", "/dear", "/jar", "/spinner", "/settings"]
-  const isAppRoute = APP_PATHS.some((p) => pathname.startsWith(p))
-  const isLoginPage = pathname.startsWith("/login")
+  const protectedRoutes = ["/home", "/locket", "/quest", "/mood", "/dear", "/jar", "/spinner", "/settings"]
+  const isProtected = protectedRoutes.some((r) => pathname.startsWith(r))
 
-  // Not logged in → redirect to /login
-  if (isAppRoute && !user) {
+  if (!user && isProtected) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = "/login"
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Logged in on login page → go to /home
-  if (isLoginPage && user) {
+  if (user && pathname.startsWith("/login")) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = "/home"
     return NextResponse.redirect(redirectUrl)

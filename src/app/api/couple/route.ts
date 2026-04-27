@@ -1,9 +1,17 @@
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
 import { randomBytes } from "crypto"
 
 function generateInviteCode(): string {
   return randomBytes(4).toString("hex").toUpperCase()
+}
+
+function getService() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
 }
 
 const PRESET_QUESTS = [
@@ -21,130 +29,114 @@ const PRESET_QUESTS = [
 
 export async function GET() {
   const supabase = await createClient()
-
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { data, error } = await supabase
+  const service = getService()
+  const { data, error } = await service
     .from("couples")
     .select("*")
     .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
     .maybeSingle()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }
 
 export async function POST() {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const service = getService()
+
+    await service.from("users").upsert({
+      id: user.id,
+      email: user.email,
+      name: user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "User",
+      avatar_url: user.user_metadata?.avatar_url ?? null,
+    }, { onConflict: "id" })
+
+    const { data: existing } = await service
+      .from("couples")
+      .select("*")
+      .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
+      .maybeSingle()
+
+    if (existing) return NextResponse.json({ couple: existing })
+
+    const { data: couple, error } = await service
+      .from("couples")
+      .insert({ user_a_id: user.id, invite_code: generateInviteCode() })
+      .select()
+      .single()
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    await service.from("quest_items").insert(
+      PRESET_QUESTS.map((q) => ({
+        couple_id: couple.id,
+        created_by: user.id,
+        title: q.title,
+        category: q.category,
+      }))
+    )
+
+    return NextResponse.json({ couple }, { status: 201 })
+  } catch (err) {
+    console.error("[CREATE COUPLE]", err)
+    return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
-
-  await supabase.from("users").upsert({
-    id: user.id,
-    email: user.email,
-    name: user.user_metadata?.full_name ?? user.email,
-    avatar_url: user.user_metadata?.avatar_url ?? null,
-  }, { onConflict: "id" })
-
-  // If user already has a couple, return it instead of erroring
-  const { data: existing } = await supabase
-    .from("couples")
-    .select("*")
-    .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
-    .maybeSingle()
-
-  if (existing) {
-    return NextResponse.json(existing)
-  }
-
-  const { data, error } = await supabase
-    .from("couples")
-    .insert({
-      user_a_id: user.id,
-      invite_code: generateInviteCode(),
-    })
-    .select()
-    .single()
-
-  if (error) {
-    console.error("[POST /api/couple] Insert error:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  await supabase.from("quest_items").insert(
-    PRESET_QUESTS.map((q) => ({
-      couple_id: data.id,
-      created_by: user.id,
-      title: q.title,
-      category: q.category,
-    }))
-  )
-
-  return NextResponse.json(data, { status: 201 })
 }
 
 export async function PATCH(request: NextRequest) {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const body = await request.json()
+    const inviteCode = body.invite_code?.toString().trim().toUpperCase()
+
+    if (!inviteCode) return NextResponse.json({ error: "Thiếu mã mời" }, { status: 400 })
+
+    const service = getService()
+
+    await service.from("users").upsert({
+      id: user.id,
+      email: user.email,
+      name: user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "User",
+      avatar_url: user.user_metadata?.avatar_url ?? null,
+    }, { onConflict: "id" })
+
+    const { data: couple, error: findError } = await service
+      .from("couples")
+      .select("*")
+      .eq("invite_code", inviteCode)
+      .is("user_b_id", null)
+      .maybeSingle()
+
+    if (findError || !couple) {
+      return NextResponse.json({ error: "Mã không hợp lệ hoặc đã được sử dụng" }, { status: 400 })
+    }
+
+    if (couple.user_a_id === user.id) {
+      return NextResponse.json({ error: "Không thể dùng mã của chính mình" }, { status: 400 })
+    }
+
+    const { data: updated, error: updateError } = await service
+      .from("couples")
+      .update({ user_b_id: user.id })
+      .eq("id", couple.id)
+      .select()
+      .single()
+
+    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
+
+    return NextResponse.json({ success: true, couple: updated })
+  } catch (err) {
+    console.error("[JOIN COUPLE]", err)
+    return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
-
-  await supabase.from("users").upsert({
-    id: user.id,
-    email: user.email,
-    name: user.user_metadata?.full_name ?? user.email,
-    avatar_url: user.user_metadata?.avatar_url ?? null,
-  }, { onConflict: "id" })
-
-  const body = await request.json()
-  const inviteCode = body.invite_code?.toString().trim().toUpperCase()
-
-  if (!inviteCode) {
-    return NextResponse.json({ error: "Thiếu mã mời" }, { status: 400 })
-  }
-
-  const { createClient: createServiceClient } = await import("@supabase/supabase-js")
-  const serviceSupabase = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
-  const { data: couple } = await serviceSupabase
-    .from("couples")
-    .select("*")
-    .ilike("invite_code", inviteCode)
-    .is("user_b_id", null)
-    .neq("user_a_id", user.id)
-    .maybeSingle()
-
-  if (!couple) {
-    return NextResponse.json(
-      { error: "Mã không hợp lệ hoặc đã được sử dụng" },
-      { status: 400 }
-    )
-  }
-
-  const { data: updated, error } = await serviceSupabase
-    .from("couples")
-    .update({ user_b_id: user.id })
-    .eq("id", couple.id)
-    .select()
-    .single()
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ success: true, couple: updated })
 }

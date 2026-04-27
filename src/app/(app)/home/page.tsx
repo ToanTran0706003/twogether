@@ -7,7 +7,9 @@ import ModuleGrid from "@/components/home/ModuleGrid"
 import MemoryJarPreview from "@/components/home/MemoryJarPreview"
 import StreakBar from "@/components/home/StreakBar"
 import HomeSkeleton from "@/components/home/HomeSkeleton"
+import { ConnectBanner } from "@/components/home/ConnectBanner"
 import { Suspense } from "react"
+import type { MoodEntry } from "@/types"
 
 async function HomeContent() {
   const supabase = await createClient()
@@ -24,7 +26,6 @@ async function HomeContent() {
   const partnerId = couple
     ? (couple.user_a_id === user.id ? couple.user_b_id : couple.user_a_id)
     : null
-  const hasPartner = couple?.user_b_id != null
 
   const today = new Date().toISOString().split("T")[0]
 
@@ -49,26 +50,8 @@ async function HomeContent() {
       <TopNav />
 
       <div className="flex-1 space-y-1">
-        {!couple && (
-          <div style={{ margin: "12px 16px 0", padding: "12px 16px", borderRadius: 16, backgroundColor: "#FBEAF0", border: "1px solid #F4C0D1", display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 20 }}>💕</span>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 500, color: "#C0607A" }}>Chưa kết nối với người yêu</div>
-              <div style={{ fontSize: 11, color: "#7A5A65" }}>Vào Cài đặt để kết nối ngay</div>
-            </div>
-            <a href="/settings" style={{ marginLeft: "auto", fontSize: 12, color: "#C0607A", fontWeight: 500, textDecoration: "none" }}>Vào Settings →</a>
-          </div>
-        )}
-
-        {couple && !hasPartner && (
-          <div style={{ margin: "12px 16px 0", padding: "12px 16px", borderRadius: 16, backgroundColor: "#FFF0C0", border: "1px solid #F2DDC2", display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 20 }}>⏳</span>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#3A2832" }}>Chờ người yêu kết nối...</div>
-              <div style={{ fontSize: 11.5, color: "#7A5A65", marginTop: 1 }}>Mã mời: <span style={{ fontWeight: 700, letterSpacing: 2, fontFamily: "monospace" }}>{couple.invite_code}</span></div>
-            </div>
-          </div>
-        )}
+        {/* ConnectBanner handles its own state — shows only when no partner */}
+        <ConnectBanner userId={user.id} />
 
         {couple && (
           <>
@@ -80,7 +63,7 @@ async function HomeContent() {
               coupleId={couple.id}
               userId={user.id}
               partnerId={partnerId}
-              initialMoods={(initialMoods as { data?: import("@/types").MoodEntry[] }).data ?? []}
+              initialMoods={(initialMoods as { data?: MoodEntry[] }).data ?? []}
             />
 
             <div className="border-t border-b py-1" style={{ borderColor: "#F0E4DF" }}>
