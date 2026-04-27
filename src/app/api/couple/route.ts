@@ -100,12 +100,23 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  console.log("[PATCH /api/couple] Current user:", user.id, user.email)
+
+  // Log all couples in DB for debugging
+  const { data: allCouples } = await supabase
+    .from("couples")
+    .select("id, user_a_id, user_b_id, invite_code")
+    .limit(20)
+  console.log("[PATCH /api/couple] All couples in DB:", JSON.stringify(allCouples))
+
   // Block only if already in a fully connected couple
   const { data: existing } = await supabase
     .from("couples")
     .select("id, user_b_id")
     .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
     .maybeSingle()
+
+  console.log("[PATCH /api/couple] Existing couple for user:", JSON.stringify(existing))
 
   if (existing && existing.user_b_id !== null) {
     return NextResponse.json({ error: "Already in a couple" }, { status: 400 })
@@ -114,12 +125,30 @@ export async function PATCH(request: NextRequest) {
   const body = await request.json()
   const inviteCode = body.invite_code?.trim().toUpperCase()
 
+  console.log("[PATCH /api/couple] Raw invite_code from body:", body.invite_code)
+  console.log("[PATCH /api/couple] Normalized invite_code:", inviteCode)
+
   if (!inviteCode) {
     return NextResponse.json({ error: "Thiếu mã mời" }, { status: 400 })
   }
 
-  console.log("[PATCH /api/couple] Searching for invite_code:", inviteCode)
+  // Try exact match first
+  const { data: exactMatch } = await supabase
+    .from("couples")
+    .select("id, invite_code, user_a_id, user_b_id")
+    .eq("invite_code", inviteCode)
+    .maybeSingle()
+  console.log("[PATCH /api/couple] Exact match (no filters):", JSON.stringify(exactMatch))
 
+  // Try ilike match without filters
+  const { data: ilikeMatch } = await supabase
+    .from("couples")
+    .select("id, invite_code, user_a_id, user_b_id")
+    .ilike("invite_code", inviteCode)
+    .maybeSingle()
+  console.log("[PATCH /api/couple] ilike match (no filters):", JSON.stringify(ilikeMatch))
+
+  // Full query with all filters
   const { data: couple, error: findError } = await supabase
     .from("couples")
     .select("*")
@@ -128,13 +157,21 @@ export async function PATCH(request: NextRequest) {
     .neq("user_a_id", user.id)
     .maybeSingle()
 
-  console.log("[PATCH /api/couple] Found:", couple, "Error:", findError)
+  console.log("[PATCH /api/couple] Full filtered query result:", JSON.stringify(couple), "Error:", findError)
 
   if (findError) {
     return NextResponse.json({ error: findError.message }, { status: 500 })
   }
 
   if (!couple) {
+    const reason = ilikeMatch
+      ? ilikeMatch.user_b_id !== null
+        ? "user_b_id already set"
+        : ilikeMatch.user_a_id === user.id
+          ? "self-join blocked"
+          : "unknown"
+      : "invite_code not found"
+    console.log("[PATCH /api/couple] Not found reason:", reason)
     return NextResponse.json({ error: "Mã không hợp lệ hoặc đã được sử dụng" }, { status: 400 })
   }
 
@@ -151,6 +188,8 @@ export async function PATCH(request: NextRequest) {
     .eq("id", couple.id)
     .select()
     .single()
+
+  console.log("[PATCH /api/couple] Update result:", JSON.stringify(updated), "Error:", updateError)
 
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 })
