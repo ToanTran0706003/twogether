@@ -94,6 +94,8 @@ export default function QuestClient({ initialQuests, coupleId }: QuestClientProp
                 background: "linear-gradient(90deg, #E8A0B0, #C0607A)",
                 width: `${pct}%`,
                 transition: "width 0.4s ease",
+                animation: "waveIn 0.8s ease 0.2s both",
+                transformOrigin: "left",
               }}
             />
           </div>

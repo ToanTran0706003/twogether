@@ -4,6 +4,7 @@ import { useState } from "react"
 import Image from "next/image"
 import type { QuestItem } from "@/types"
 import CompleteDialog from "./CompleteDialog"
+import { injectKeyframes } from "@/lib/animations"
 
 const CATEGORY_LABELS: Record<string, string> = {
   food: "Ăn uống",
@@ -29,6 +30,7 @@ interface QuestCardProps {
 export default function QuestCard({ quest, onUpdated }: QuestCardProps) {
   const [showComplete, setShowComplete] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
+  const [ticking, setTicking] = useState(false)
 
   async function confirmComplete(photoUrl?: string) {
     setIsCompleting(true)
@@ -70,18 +72,36 @@ export default function QuestCard({ quest, onUpdated }: QuestCardProps) {
         }}
       >
         <button
-          onClick={() => !quest.completed && setShowComplete(true)}
+          onClick={() => {
+            if (!quest.completed) {
+              injectKeyframes()
+              setTicking(true)
+              setTimeout(() => setTicking(false), 400)
+              setShowComplete(true)
+            }
+          }}
           disabled={quest.completed || isCompleting}
           style={{
-            marginTop: 1, width: 24, height: 24, borderRadius: "50%", border: "2px solid",
+            marginTop: 1, width: 28, height: 28, borderRadius: "50%", border: "2px solid",
             flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
             cursor: quest.completed ? "default" : "pointer",
-            borderColor: quest.completed ? "#66BB6A" : "#E8A0B0",
-            backgroundColor: quest.completed ? "#66BB6A" : "transparent",
-            transition: "all 0.2s",
+            borderColor: quest.completed ? "#3B6D11" : "#E8A0B0",
+            backgroundColor: quest.completed ? "#3B6D11" : "transparent",
+            transition: "all 0.3s",
+            animation: ticking ? "tickFill 0.4s ease forwards" : "none",
           }}
         >
-          {quest.completed && <span style={{ color: "white", fontSize: 11, fontWeight: 700 }}>✓</span>}
+          {quest.completed && (
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path
+                d="M2.5 7L5.5 10L11.5 4"
+                stroke="white" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round"
+                strokeDasharray="30" strokeDashoffset="0"
+                style={{ animation: "checkDraw 0.3s ease 0.1s both" }}
+              />
+            </svg>
+          )}
         </button>
 
         <div style={{ flex: 1, minWidth: 0 }}>

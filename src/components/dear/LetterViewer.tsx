@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import type { Letter } from "@/types"
+import { injectKeyframes } from "@/lib/animations"
 
 interface LetterViewerProps {
   letter: Letter
@@ -29,6 +30,13 @@ export default function LetterViewer({ letter, onClose, onSaved }: LetterViewerP
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState(false)
+  const [opened, setOpened] = useState(false)
+
+  useEffect(() => {
+    injectKeyframes()
+    const timer = setTimeout(() => setOpened(true), 300)
+    return () => clearTimeout(timer)
+  }, [])
 
   async function handleSaveToJar() {
     setIsSaving(true)
@@ -64,15 +72,17 @@ export default function LetterViewer({ letter, onClose, onSaved }: LetterViewerP
         style={{ fontFamily: "Georgia, serif" }}
       >
         <DialogHeader className="text-center mb-4">
-          {/* envelope open animation */}
           <div
             className="text-4xl mb-2"
             style={{
-              animation: "envelopeOpen 0.6s ease-out forwards",
+              fontSize: 52,
               display: "inline-block",
+              transition: "filter 0.3s",
+              filter: opened ? "none" : "brightness(0.7)",
+              animation: opened ? "bounce 0.5s ease 0.2s both" : "none",
             }}
           >
-            💌
+            {opened ? "📭" : "💌"}
           </div>
           <DialogTitle
             className="text-lg italic leading-snug"
@@ -93,7 +103,9 @@ export default function LetterViewer({ letter, onClose, onSaved }: LetterViewerP
             color: "#3A2832",
             fontSize: "0.9375rem",
             whiteSpace: "pre-wrap",
-            animation: "fadeInUp 0.5s ease-out 0.3s both",
+            opacity: opened ? 1 : 0,
+            transform: opened ? "translateY(0)" : "translateY(8px)",
+            transition: "opacity 0.4s ease 0.4s, transform 0.4s ease 0.4s",
           }}
         >
           {letter.content}
@@ -120,17 +132,6 @@ export default function LetterViewer({ letter, onClose, onSaved }: LetterViewerP
           )}
         </div>
 
-        <style>{`
-          @keyframes envelopeOpen {
-            0% { transform: scale(0.8) rotate(-5deg); opacity: 0.5; }
-            60% { transform: scale(1.15) rotate(3deg); opacity: 1; }
-            100% { transform: scale(1) rotate(0deg); opacity: 1; }
-          }
-          @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-        `}</style>
       </DialogContent>
     </Dialog>
   )

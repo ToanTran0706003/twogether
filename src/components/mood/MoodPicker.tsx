@@ -3,6 +3,7 @@
 import { useState } from "react"
 import type { MoodEntry } from "@/types"
 import { MOOD_OPTIONS } from "@/lib/mood-config"
+import { injectKeyframes } from "@/lib/animations"
 
 interface MoodPickerProps {
   todayEntry: MoodEntry | null
@@ -20,12 +21,16 @@ export default function MoodPicker({
   const [isLoading, setIsLoading] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [pendingMood, setPendingMood] = useState<{ emoji: string; color: string } | null>(null)
+  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null)
 
   const currentMood = todayEntry
     ? MOOD_OPTIONS.find((m) => m.emoji === todayEntry.emoji)
     : null
 
   async function handleSelect(emoji: string, color: string) {
+    injectKeyframes()
+    setSelectedEmoji(emoji)
+    setTimeout(() => setSelectedEmoji(null), 400)
     if (todayEntry) {
       setPendingMood({ emoji, color })
       setShowConfirm(true)
@@ -101,7 +106,13 @@ export default function MoodPicker({
                 className="flex flex-col items-center gap-1 p-2 rounded-xl hover:opacity-80 disabled:opacity-50 transition-all active:scale-95"
                 style={{ backgroundColor: mood.color }}
               >
-                <span className="text-2xl">{mood.emoji}</span>
+                <span style={{
+                  fontSize: 24,
+                  display: "block",
+                  animation: selectedEmoji === mood.emoji
+                    ? "popIn 0.4s cubic-bezier(0.34,1.56,0.64,1)"
+                    : "none",
+                }}>{mood.emoji}</span>
                 <span className="text-[10px] font-medium" style={{ color: "#3A2832" }}>
                   {mood.label}
                 </span>

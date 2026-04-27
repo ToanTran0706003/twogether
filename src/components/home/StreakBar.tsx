@@ -62,7 +62,7 @@ export default async function StreakBar({ coupleId }: StreakBarProps) {
                   {label}
                 </span>
                 <div
-                  className="w-5 h-5 rounded-full"
+                  className={`w-5 h-5 rounded-full${isToday && filled ? " anim-streakPop" : ""}`}
                   style={{
                     backgroundColor: filled ? "#E8A0B0" : "#F0E4DF",
                     outline: isToday ? "2px solid #C0607A" : "none",

@@ -42,7 +42,7 @@ async function HomeContent() {
     <>
       <TopNav />
 
-      <div className="flex-1 space-y-1">
+      <div className="flex-1 space-y-1 stagger-children">
         {/* ConnectBanner handles its own state — shows only when no partner */}
         <ConnectBanner userId={user.id} />
 

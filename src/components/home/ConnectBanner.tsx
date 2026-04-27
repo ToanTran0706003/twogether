@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { LoadingSpinner, LoadingButton } from '@/components/shared/LoadingSpinner'
 import { useToast } from '@/components/shared/Toast'
+import { burstConfetti, injectKeyframes } from "@/lib/animations"
 
 interface CoupleRow {
   id: string
@@ -24,6 +25,7 @@ export function ConnectBanner({ userId }: { userId: string }) {
   const [error, setError] = useState("")
   const [working, setWorking] = useState(false)
   const [celebrated, setCelebrated] = useState(false)
+  const confettiRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -66,6 +68,13 @@ export function ConnectBanner({ userId }: { userId: string }) {
     return () => { void supabaseClient.removeChannel(channel) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [couple?.id])
+
+  useEffect(() => {
+    if (celebrated && confettiRef.current) {
+      injectKeyframes()
+      burstConfetti(confettiRef.current, 40)
+    }
+  }, [celebrated])
 
   // Polling fallback: check every 5s in case Realtime is not enabled
   useEffect(() => {
@@ -155,11 +164,31 @@ export function ConnectBanner({ userId }: { userId: string }) {
     <>
       {/* Celebration overlay */}
       {celebrated && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)" }}>
-          <div style={{ background: "white", borderRadius: 24, padding: "32px 40px", textAlign: "center", maxWidth: 300, margin: "0 16px" }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
-            <div style={{ fontSize: 18, fontWeight: 500, color: "#C0607A", fontFamily: "Georgia,serif", marginBottom: 8 }}>Đã kết nối! ♡</div>
-            <div style={{ fontSize: 13, color: "#7A5A65" }}>Chào mừng hai bạn đến với TwoGether</div>
+        <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)" }}>
+          <div ref={confettiRef} style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }} />
+          <div style={{
+            background: "white", borderRadius: 28,
+            padding: "36px 44px", textAlign: "center",
+            maxWidth: 300, margin: "0 20px",
+            animation: "celebrationScale 0.5s cubic-bezier(0.34,1.56,0.64,1) both",
+            position: "relative", zIndex: 1,
+          }}>
+            <div style={{ fontSize: 56, marginBottom: 12, display: "block", animation: "bounce 0.6s ease 0.3s both" }}>
+              🎉
+            </div>
+            <div style={{
+              fontSize: 20, fontWeight: 500, color: "#C0607A",
+              fontFamily: "Georgia,serif", marginBottom: 8,
+              animation: "fadeUp 0.4s ease 0.4s both", opacity: 0,
+            }}>
+              Đã kết nối! ♡
+            </div>
+            <div style={{
+              fontSize: 13, color: "#7A5A65",
+              animation: "fadeUp 0.4s ease 0.5s both", opacity: 0,
+            }}>
+              Chào mừng hai bạn đến với TwoGether
+            </div>
           </div>
         </div>
       )}
@@ -195,7 +224,7 @@ export function ConnectBanner({ userId }: { userId: string }) {
       {showSheet && (
         <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
           <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)" }} onClick={() => setShowSheet(false)} />
-          <div style={{ position: "relative", background: "white", borderRadius: "20px 20px 0 0", padding: 24, paddingBottom: "calc(24px + env(safe-area-inset-bottom))", maxHeight: "85dvh", overflowY: "auto", zIndex: 1 }}>
+          <div style={{ position: "relative", background: "white", borderRadius: "20px 20px 0 0", padding: 24, paddingBottom: "calc(24px + env(safe-area-inset-bottom))", maxHeight: "85dvh", overflowY: "auto", zIndex: 1, animation: "slideUp 0.38s cubic-bezier(0.32,0.72,0,1) both" }}>
             <div style={{ width: 40, height: 4, background: "#E0E0E0", borderRadius: 2, margin: "0 auto 20px" }} />
             <div style={{ fontSize: 16, fontWeight: 500, color: "#3A2832", fontFamily: "Georgia,serif", marginBottom: 16, textAlign: "center" }}>
               Kết nối người yêu ♡

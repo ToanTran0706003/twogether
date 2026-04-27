@@ -1,5 +1,6 @@
 import { getCoupleDays, formatDate } from "@/lib/utils"
 import AnniversaryPicker from "./AnniversaryPicker"
+import PetalEffect from "./PetalEffect"
 
 interface HeroCardProps {
   anniversary: string | null
@@ -23,6 +24,7 @@ export default async function HeroCard({ anniversary, coupleId }: HeroCardProps)
 
   return (
     <div className="card-dark mx-4" style={{ padding: "22px 22px 18px", position: "relative", overflow: "hidden" }}>
+      <PetalEffect anniversary={anniversary} />
       <svg width="80" height="80" viewBox="0 0 24 24" style={{ position: "absolute", top: -10, right: -10, opacity: 0.18, pointerEvents: "none" }}>
         <path d="M12 2c4 3 6 7 6 11s-3 9-6 9-6-5-6-9 2-8 6-11z" fill="#E8A0B0"/>
       </svg>
