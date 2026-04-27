@@ -100,81 +100,6 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  console.log("[PATCH /api/couple] Current user:", user.id, user.email)
-
-  // Log all couples in DB for debugging
-  const { data: allCouples } = await supabase
-    .from("couples")
-    .select("id, user_a_id, user_b_id, invite_code")
-    .limit(20)
-  console.log("[PATCH /api/couple] All couples in DB:", JSON.stringify(allCouples))
-
-  // Block only if already in a fully connected couple
-  const { data: existing } = await supabase
-    .from("couples")
-    .select("id, user_b_id")
-    .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
-    .maybeSingle()
-
-  console.log("[PATCH /api/couple] Existing couple for user:", JSON.stringify(existing))
-
-  if (existing && existing.user_b_id !== null) {
-    return NextResponse.json({ error: "Already in a couple" }, { status: 400 })
-  }
-
-  const body = await request.json()
-  const inviteCode = body.invite_code?.trim().toUpperCase()
-
-  console.log("[PATCH /api/couple] Raw invite_code from body:", body.invite_code)
-  console.log("[PATCH /api/couple] Normalized invite_code:", inviteCode)
-
-  if (!inviteCode) {
-    return NextResponse.json({ error: "Thiếu mã mời" }, { status: 400 })
-  }
-
-  // Try exact match first
-  const { data: exactMatch } = await supabase
-    .from("couples")
-    .select("id, invite_code, user_a_id, user_b_id")
-    .eq("invite_code", inviteCode)
-    .maybeSingle()
-  console.log("[PATCH /api/couple] Exact match (no filters):", JSON.stringify(exactMatch))
-
-  // Try ilike match without filters
-  const { data: ilikeMatch } = await supabase
-    .from("couples")
-    .select("id, invite_code, user_a_id, user_b_id")
-    .ilike("invite_code", inviteCode)
-    .maybeSingle()
-  console.log("[PATCH /api/couple] ilike match (no filters):", JSON.stringify(ilikeMatch))
-
-  // Full query with all filters
-  const { data: couple, error: findError } = await supabase
-    .from("couples")
-    .select("*")
-    .ilike("invite_code", inviteCode)
-    .is("user_b_id", null)
-    .neq("user_a_id", user.id)
-    .maybeSingle()
-
-  console.log("[PATCH /api/couple] Full filtered query result:", JSON.stringify(couple), "Error:", findError)
-
-  if (findError) {
-    return NextResponse.json({ error: findError.message }, { status: 500 })
-  }
-
-  if (!couple) {
-    const reason = ilikeMatch
-      ? ilikeMatch.user_b_id !== null
-        ? "user_b_id already set"
-        : ilikeMatch.user_a_id === user.id
-          ? "self-join blocked"
-          : "unknown"
-      : "invite_code not found"
-    console.log("[PATCH /api/couple] Not found reason:", reason)
-    return NextResponse.json({ error: "Mã không hợp lệ hoặc đã được sử dụng" }, { status: 400 })
-  }
-
   await supabase.from("users").upsert({
     id: user.id,
     email: user.email,
@@ -182,17 +107,43 @@ export async function PATCH(request: NextRequest) {
     avatar_url: user.user_metadata?.avatar_url ?? null,
   }, { onConflict: "id" })
 
-  const { data: updated, error: updateError } = await supabase
+  const body = await request.json()
+  const inviteCode = body.invite_code?.toString().trim().toUpperCase()
+
+  if (!inviteCode) {
+    return NextResponse.json({ error: "Thiếu mã mời" }, { status: 400 })
+  }
+
+  const { createClient: createServiceClient } = await import("@supabase/supabase-js")
+  const serviceSupabase = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  const { data: couple } = await serviceSupabase
+    .from("couples")
+    .select("*")
+    .ilike("invite_code", inviteCode)
+    .is("user_b_id", null)
+    .neq("user_a_id", user.id)
+    .maybeSingle()
+
+  if (!couple) {
+    return NextResponse.json(
+      { error: "Mã không hợp lệ hoặc đã được sử dụng" },
+      { status: 400 }
+    )
+  }
+
+  const { data: updated, error } = await serviceSupabase
     .from("couples")
     .update({ user_b_id: user.id })
     .eq("id", couple.id)
     .select()
     .single()
 
-  console.log("[PATCH /api/couple] Update result:", JSON.stringify(updated), "Error:", updateError)
-
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 })
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
   return NextResponse.json({ success: true, couple: updated })

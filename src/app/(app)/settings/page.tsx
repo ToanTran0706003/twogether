@@ -13,18 +13,17 @@ export default async function SettingsPage() {
     .from("couples")
     .select("*")
     .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
-    .single()
-
-  if (!couple) redirect("/invite")
+    .maybeSingle()
 
   const { data: profile } = await supabase
     .from("users")
     .select("*")
     .eq("id", user.id)
-    .single()
+    .maybeSingle()
 
-  const partnerId =
-    couple.user_a_id === user.id ? couple.user_b_id : couple.user_a_id
+  const partnerId = couple
+    ? (couple.user_a_id === user.id ? couple.user_b_id : couple.user_a_id)
+    : null
 
   let partnerProfile = null
   if (partnerId) {
@@ -32,7 +31,7 @@ export default async function SettingsPage() {
       .from("users")
       .select("*")
       .eq("id", partnerId)
-      .single()
+      .maybeSingle()
     partnerProfile = data
   }
 
@@ -48,14 +47,17 @@ export default async function SettingsPage() {
 
         <SettingsClient
           userId={user.id}
-          coupleId={couple.id}
-          coupleUserAId={couple.user_a_id}
-          anniversary={couple.anniversary ?? null}
+          coupleId={couple?.id ?? null}
+          coupleUserAId={couple?.user_a_id ?? null}
+          inviteCode={couple?.invite_code ?? null}
+          anniversary={couple?.anniversary ?? null}
           myName={profile?.name ?? user.email ?? ""}
           myEmail={user.email ?? ""}
           myAvatar={profile?.avatar_url ?? user.user_metadata?.avatar_url ?? null}
           partnerName={partnerProfile?.name ?? "Người ấy"}
           partnerAvatar={partnerProfile?.avatar_url ?? null}
+          hasCouple={couple !== null}
+          hasPartner={couple?.user_b_id != null}
         />
       </div>
     </div>

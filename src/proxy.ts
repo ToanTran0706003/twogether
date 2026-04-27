@@ -38,57 +38,20 @@ export async function proxy(request: NextRequest) {
 
   const APP_PATHS = ["/home", "/locket", "/quest", "/mood", "/dear", "/jar", "/spinner", "/settings"]
   const isAppRoute = APP_PATHS.some((p) => pathname.startsWith(p))
-  const isInvitePage = pathname.startsWith("/invite")
   const isLoginPage = pathname.startsWith("/login")
 
-  // 1. Not logged in → redirect to /login
-  if ((isAppRoute || isInvitePage) && !user) {
+  // Not logged in → redirect to /login
+  if (isAppRoute && !user) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = "/login"
     return NextResponse.redirect(redirectUrl)
   }
 
-  // 2. Logged in on a login page → check couple status
+  // Logged in on login page → go to /home
   if (isLoginPage && user) {
-    const { data: couple } = await supabase
-      .from("couples")
-      .select("id")
-      .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
-      .maybeSingle()
-
     const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = couple ? "/home" : "/invite"
+    redirectUrl.pathname = "/home"
     return NextResponse.redirect(redirectUrl)
-  }
-
-  // 3. Logged in on an app route → must have a couple
-  if (isAppRoute && user) {
-    const { data: couple } = await supabase
-      .from("couples")
-      .select("id")
-      .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
-      .maybeSingle()
-
-    if (!couple) {
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/invite"
-      return NextResponse.redirect(redirectUrl)
-    }
-  }
-
-  // 4. Visiting /invite while logged in → only redirect /home if couple is fully connected (both users present)
-  if (isInvitePage && user) {
-    const { data: couple } = await supabase
-      .from("couples")
-      .select("id, user_b_id")
-      .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
-      .maybeSingle()
-
-    if (couple && couple.user_b_id !== null) {
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/home"
-      return NextResponse.redirect(redirectUrl)
-    }
   }
 
   return supabaseResponse
