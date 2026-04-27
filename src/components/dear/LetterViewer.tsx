@@ -32,15 +32,23 @@ export default function LetterViewer({ letter, onClose, onSaved }: LetterViewerP
   async function handleSaveToJar() {
     setIsSaving(true)
     try {
-      const res = await fetch("/api/letters", {
-        method: "PATCH",
+      const res = await fetch("/api/memories", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ letter_id: letter.id }),
+        body: JSON.stringify({
+          couple_id: letter.couple_id,
+          type: "letter",
+          title: letter.title ?? "Thư tình",
+          content: letter.content,
+          memory_date: letter.send_at,
+          source: "letter",
+          source_id: letter.id,
+        }),
       })
 
       if (res.ok) {
         setSaved(true)
-        onSaved()
+        setTimeout(onSaved, 800)
       }
     } catch {
       // silently fail
@@ -55,7 +63,16 @@ export default function LetterViewer({ letter, onClose, onSaved }: LetterViewerP
         style={{ fontFamily: "Georgia, serif" }}
       >
         <DialogHeader className="text-center mb-4">
-          <div className="text-3xl mb-2">💌</div>
+          {/* envelope open animation */}
+          <div
+            className="text-4xl mb-2"
+            style={{
+              animation: "envelopeOpen 0.6s ease-out forwards",
+              display: "inline-block",
+            }}
+          >
+            💌
+          </div>
           <DialogTitle
             className="text-lg italic leading-snug"
             style={{ color: "#C0607A", fontFamily: "Georgia, serif" }}
@@ -68,7 +85,6 @@ export default function LetterViewer({ letter, onClose, onSaved }: LetterViewerP
         </DialogHeader>
 
         <div
-          className="animate-in fade-in zoom-in-95 duration-300"
           style={{
             fontFamily: "Georgia, serif",
             fontStyle: "italic",
@@ -76,34 +92,40 @@ export default function LetterViewer({ letter, onClose, onSaved }: LetterViewerP
             color: "#3A2832",
             fontSize: "0.9375rem",
             whiteSpace: "pre-wrap",
+            animation: "fadeInUp 0.5s ease-out 0.3s both",
           }}
         >
           {letter.content}
         </div>
 
-        {!saved && (
-          <div className="pt-4 mt-2">
+        <div className="pt-4 mt-2">
+          {saved ? (
+            <p className="text-xs text-center" style={{ color: "#C0607A" }}>
+              Đã lưu vào Memory Jar 🫙
+            </p>
+          ) : (
             <button
               onClick={handleSaveToJar}
               disabled={isSaving}
               className="w-full py-2.5 rounded-xl text-sm font-medium border transition-colors hover:opacity-80 disabled:opacity-50"
-              style={{
-                borderColor: "#F0E4DF",
-                color: "#C0607A",
-              }}
+              style={{ borderColor: "#F0E4DF", color: "#C0607A" }}
             >
               {isSaving ? "Đang lưu..." : "Lưu vào Memory Jar ♡"}
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
-        {saved && (
-          <div className="pt-4 mt-2 text-center">
-            <p className="text-xs" style={{ color: "#C0607A" }}>
-              Đã lưu vào Memory Jar 🫙
-            </p>
-          </div>
-        )}
+        <style>{`
+          @keyframes envelopeOpen {
+            0% { transform: scale(0.8) rotate(-5deg); opacity: 0.5; }
+            60% { transform: scale(1.15) rotate(3deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+          }
+          @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
       </DialogContent>
     </Dialog>
   )

@@ -14,15 +14,16 @@ interface DearClientProps {
 }
 
 export default function DearClient({
-  myLetters,
+  myLetters: initialMyLetters,
   receivedLetters,
   coupleId,
 }: DearClientProps) {
+  const [myLetters, setMyLetters] = useState<Letter[]>(initialMyLetters)
   const [isWriteOpen, setIsWriteOpen] = useState(false)
   const [selectedLetter, setSelectedLetter] = useState<Letter | null>(null)
 
   function handleLetterSent(newLetter: Letter) {
-    myLetters = [newLetter, ...myLetters]
+    setMyLetters((prev) => [newLetter, ...prev])
   }
 
   function handleSaved() {
