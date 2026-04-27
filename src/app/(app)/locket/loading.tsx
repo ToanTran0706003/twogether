@@ -1,13 +1,35 @@
+import { SkeletonBlock } from '@/components/shared/Skeleton'
+
 export default function LocketLoading() {
   return (
-    <div className="animate-pulse px-4 pt-16">
-      <div className="flex justify-between items-center mb-4">
-        <div className="h-7 w-24 rounded-lg" style={{ backgroundColor: "#F0E4DF" }} />
-        <div className="h-4 w-16 rounded" style={{ backgroundColor: "#F0E4DF" }} />
+    <div style={{ padding: '16px 16px 100px' }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+      }}>
+        <SkeletonBlock width={100} height={28} radius={6} />
+        <SkeletonBlock width={60} height={20} radius={10} />
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="aspect-square rounded-2xl" style={{ backgroundColor: "#F0E4DF" }} />
+
+      <SkeletonBlock width={80} height={14} style={{ marginBottom: 12 }} />
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 8,
+        marginBottom: 16,
+      }}>
+        {[1, 2, 3, 4].map(i => (
+          <div key={i}>
+            <SkeletonBlock height={160} radius={16} />
+            <SkeletonBlock
+              width="60%"
+              height={12}
+              style={{ marginTop: 6 }}
+            />
+          </div>
         ))}
       </div>
     </div>

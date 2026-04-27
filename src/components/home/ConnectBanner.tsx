@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { LoadingSpinner, LoadingButton } from '@/components/shared/LoadingSpinner'
 
 interface CoupleRow {
   id: string
@@ -210,7 +211,7 @@ export function ConnectBanner({ userId }: { userId: string }) {
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 12, color: "#7A5A65", marginBottom: 12 }}>Gửi mã này cho người yêu</div>
                 <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 6, color: "#C0607A", background: "#FBEAF0", borderRadius: 12, padding: "16px 24px", marginBottom: 12, fontFamily: "monospace" }}>
-                  {working ? "..." : myCode || "..."}
+                  {working ? <LoadingSpinner size={24} color="#C0607A" /> : (myCode || "...")}
                 </div>
                 <button onClick={() => void copyCode()}
                   style={{ width: "100%", background: "#C0607A", color: "white", border: "none", borderRadius: 12, padding: "13px 0", fontSize: 14, fontWeight: 500, cursor: "pointer", marginBottom: 12 }}>
@@ -241,12 +242,14 @@ export function ConnectBanner({ userId }: { userId: string }) {
                 {error && (
                   <div style={{ color: "#A32D2D", fontSize: 12, textAlign: "center", marginBottom: 8 }}>{error}</div>
                 )}
-                <button
+                <LoadingButton
+                  loading={working}
+                  disabled={inputCode.length < 6}
                   onClick={() => void joinCouple()}
-                  disabled={working || inputCode.length < 6}
-                  style={{ width: "100%", background: inputCode.length >= 6 ? "#C0607A" : "#ccc", color: "white", border: "none", borderRadius: 12, padding: "13px 0", fontSize: 14, fontWeight: 500, cursor: inputCode.length >= 6 ? "pointer" : "not-allowed" }}>
-                  {working ? "Đang kết nối..." : "Tham gia ♡"}
-                </button>
+                  style={{ borderRadius: 12, padding: '13px 0', fontSize: 14 }}
+                >
+                  Tham gia ♡
+                </LoadingButton>
               </div>
             )}
             <div style={{ height: 24 }} />

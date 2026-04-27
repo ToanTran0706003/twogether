@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 
 interface AddQuestDialogProps {
   open: boolean
@@ -108,7 +109,10 @@ export default function AddQuestDialog({ open, onOpenChange, coupleId, onAdded }
             className="w-full h-11"
             disabled={isLoading || !title.trim()}
           >
-            {isLoading ? "Đang thêm..." : "Thêm quest"}
+            <>
+              {isLoading && <LoadingSpinner size={16} color="white" />}
+              {isLoading ? "Đang thêm..." : "Thêm quest"}
+            </>
           </Button>
         </form>
       </DialogContent>

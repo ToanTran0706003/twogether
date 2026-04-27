@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react"
 import type { LocketPhoto } from "@/types"
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 
 interface UploadButtonProps {
   coupleId: string
@@ -79,7 +80,7 @@ export default function UploadButton({ coupleId, onUploaded }: UploadButtonProps
         className="fab"
         style={{ fontSize: 24, opacity: isUploading ? 0.7 : 1 }}
       >
-        {isUploading ? "⏳" : "📷"}
+        {isUploading ? <LoadingSpinner size={20} color="white" /> : "📷"}
       </button>
 
       {showCaption && (

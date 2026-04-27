@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import type { Letter } from "@/types"
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 
 const QUICK_DATES = [
   { label: "Sinh nhật", getValue: () => nextBirthday() },
@@ -239,7 +240,10 @@ export default function WriteLetterDialog({
               className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
               style={{ backgroundColor: "#E8A0B0" }}
             >
-              {isLoading ? "Đang gửi..." : "Hẹn giờ gửi"}
+              <>
+                {isLoading && <LoadingSpinner size={14} color="white" />}
+                {isLoading ? "Đang gửi..." : "Hẹn giờ gửi"}
+              </>
             </button>
           </div>
         </form>

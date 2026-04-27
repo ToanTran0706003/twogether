@@ -1,12 +1,28 @@
+import { SkeletonBlock, SkeletonCard } from '@/components/shared/Skeleton'
+
 export default function DearLoading() {
   return (
-    <div className="animate-pulse px-4 pt-16 space-y-4">
-      <div className="h-8 w-36 rounded-lg" style={{ backgroundColor: "#F0E4DF" }} />
-      <div className="h-4 w-48 rounded" style={{ backgroundColor: "#F0E4DF" }} />
-      <div className="h-10 rounded-xl" style={{ backgroundColor: "#F0E4DF" }} />
-      {[...Array(3)].map((_, i) => (
-        <div key={i} className="h-24 rounded-2xl" style={{ backgroundColor: "#F0E4DF" }} />
-      ))}
+    <div style={{ padding: '16px 16px 100px' }}>
+      <SkeletonBlock width={100} height={28} radius={6} style={{ marginBottom: 16 }} />
+
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20 }}>
+        <SkeletonBlock width="50%" height={40} radius={20} />
+        <SkeletonBlock width="50%" height={40} radius={20} />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {[1, 2, 3].map(i => (
+          <SkeletonCard key={i}>
+            <SkeletonBlock width={80} height={12} style={{ marginBottom: 8 }} />
+            <SkeletonBlock height={14} style={{ marginBottom: 6 }} />
+            <SkeletonBlock width="80%" height={14} style={{ marginBottom: 12 }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <SkeletonBlock width={100} height={12} />
+              <SkeletonBlock width={80} height={24} radius={20} />
+            </div>
+          </SkeletonCard>
+        ))}
+      </div>
     </div>
   )
 }
