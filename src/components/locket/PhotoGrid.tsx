@@ -56,6 +56,7 @@ export default function PhotoGrid({ photos, currentUserId, onSelectPhoto }: Phot
                   src={photo.photo_url}
                   alt={photo.caption ?? ""}
                   fill
+                  sizes="(max-width: 480px) 50vw, 240px"
                   style={{ objectFit: "cover" }}
                   unoptimized
                 />

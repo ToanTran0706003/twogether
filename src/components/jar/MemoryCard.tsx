@@ -41,6 +41,7 @@ export default function MemoryCard({ memory, onOpen }: MemoryCardProps) {
             src={memory.media_url}
             alt={memory.title}
             fill
+            sizes="56px"
             className="object-cover"
             unoptimized
           />

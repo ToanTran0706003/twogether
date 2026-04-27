@@ -42,6 +42,7 @@ export default function MoodClient({
 }: MoodClientProps) {
   const [moodEntries, setMoodEntries] = useState<MoodEntry[]>(entries)
   const [showPicker, setShowPicker] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const supabase = useMemo(() => createClient(), [])
 
   const today = new Date().toISOString().split("T")[0]
@@ -118,7 +119,8 @@ export default function MoodClient({
   }, [coupleId, supabase])
 
   async function handleMoodSelect(emoji: string, color: string) {
-    const { data } = await supabase
+    setSaveError(null)
+    const { data, error } = await supabase
       .from("mood_entries")
       .upsert(
         { couple_id: coupleId, user_id: userId, emoji, color, entry_date: today },
@@ -127,6 +129,10 @@ export default function MoodClient({
       .select()
       .single()
 
+    if (error) {
+      setSaveError("Không thể lưu tâm trạng, thử lại nhé")
+      return
+    }
     if (data) {
       setMoodEntries((prev) => {
         const filtered = prev.filter(
@@ -140,6 +146,11 @@ export default function MoodClient({
 
   return (
     <div className="px-4 space-y-4">
+      {saveError && (
+        <div className="rounded-xl px-4 py-2 text-xs text-center" style={{ backgroundColor: "#FEE2E2", color: "#C0607A" }}>
+          {saveError}
+        </div>
+      )}
       {/* Streak + Stats row */}
       {(streak > 0 || topMood) && (
         <div className="flex gap-3">

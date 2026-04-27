@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Playfair_Display } from "next/font/google"
 import "./globals.css"
 import InstallPrompt from "@/components/shared/InstallPrompt"
@@ -20,6 +20,15 @@ export const metadata: Metadata = {
   },
 }
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-visual",
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,12 +36,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" className={playfairDisplay.variable}>
-      <head>
-        <meta name="theme-color" content="#E8A0B0" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="TwoGether" />
-      </head>
       <body className="min-h-screen flex flex-col antialiased" style={{ backgroundColor: "#FDF8F5" }}>
         {children}
         <InstallPrompt />

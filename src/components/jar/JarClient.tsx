@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef, useEffect } from "react"
+import { useState, useCallback, useRef, useEffect, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { Memory } from "@/types"
 import JarHero from "./JarHero"
@@ -41,7 +41,7 @@ export default function JarClient({
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null)
   const [showSlideshow, setShowSlideshow] = useState(false)
   const loadMoreRef = useRef<HTMLDivElement>(null)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const filtered = filter === "all"
     ? memories

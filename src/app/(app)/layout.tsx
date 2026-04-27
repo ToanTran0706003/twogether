@@ -6,7 +6,7 @@ export default function AppLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col min-h-screen pb-20" style={{ backgroundColor: "#FDF8F5" }}>
+    <div className="flex flex-col min-h-screen" style={{ backgroundColor: "#FDF8F5", paddingBottom: "calc(80px + env(safe-area-inset-bottom))" }}>
       {children}
       <BottomNav />
     </div>

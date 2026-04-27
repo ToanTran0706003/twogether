@@ -27,10 +27,12 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center"
+      className="fixed bottom-0 left-0 right-0 z-50 flex justify-around items-start"
       style={{
-        height: 78,
-        padding: "8px 8px 18px",
+        paddingTop: 8,
+        paddingLeft: 8,
+        paddingRight: 8,
+        paddingBottom: "calc(18px + env(safe-area-inset-bottom))",
         backgroundColor: "rgba(253,248,245,0.92)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
